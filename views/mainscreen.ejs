@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Screen</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: url('/images/bg.png') no-repeat center center;
+            background-size: cover;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 130px;
+        }
+
+        .button-wrapper {
+            width: 420px;
+            height: 300px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-button {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 10px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            z-index: 10;
+        }
+
+        .nav-button:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="buttons">
+            <% let buttons = [
+                { id: 'btn1', label: 'A1', image: '/images/b1.png', activeImage: '/images/ab1.png', page: '/screen1' },
+                { id: 'btn2', label: 'B1', image: '/images/b2.png', activeImage: '/images/ab2.png', page: '/screen2' },
+                { id: 'btn3', label: 'C1', image: '/images/b3.png', activeImage: '/images/ab3.png', page: '/screen3' },
+                { id: 'btn4', label: 'D1', image: '/images/b4.png', activeImage: '/images/ab4.png', page: '/screen4' },
+                { id: 'btn5', label: 'E1', image: '/images/b5.png', activeImage: '/images/ab5.png', page: '/screen5' }
+            ]; %>
+
+            <% buttons.forEach(button => { %>
+                <div class="button-wrapper">
+                    <button class="nav-button" id="<%= button.id %>" 
+                        data-image="<%= button.image %>"
+                        data-active-image="<%= button.activeImage %>"
+                        data-page="<%= button.page %>"
+                        style="background-image: url('<%= button.image %>');"
+                        onclick="handleButtonClick('<%= button.id %>')">
+                        <span><%= button.label %></span>
+                    </button>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+
+    <script>
+        function handleButtonClick(id) {
+            // Reset all buttons to their default images
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.style.backgroundImage = `url('${button.dataset.image}')`;
+            });
+
+            // Change only the clicked button to the active image
+            const activeButton = document.getElementById(id);
+            activeButton.style.backgroundImage = `url('${activeButton.dataset.activeImage}')`;
+
+            // Delay for 2 seconds before navigating
+            const page = activeButton.dataset.page;
+            setTimeout(() => {
+                window.location.href = page; // Navigate to the respective screen
+            }, 2000); // 2000 milliseconds = 2 seconds
+        }
+    </script>
+</body>
+
+
+
+</html>

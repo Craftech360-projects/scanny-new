@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: black;
+            color: white;
+            flex-direction: column;
+        }
+        video {
+            width: 80%;
+            max-width: 800px;
+        }
+        .message {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="message">Playing Video for: <span id="videoTitle"><%= videoName %></span></div>
+
+    <video id="videoPlayer" controls autoplay>
+        <source id="videoSource" src="/videos/<%= videoFile %>" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <button onclick="window.location.href='/'">⬅ Back</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoSource = document.getElementById('videoSource');
+        const videoTitle = document.getElementById('videoTitle');
+
+        // ✅ Connect to the server using Socket.IO
+        const socket = io();
+
+        // ✅ Listen for video change signals
+        socket.on('videoChange', (data) => {
+            console.log('🔔 Video change signal received:', data);
+
+            if (!data.videoFile || data.videoFile === "default.mp4") {
+                console.warn("⚠️ Received default.mp4 - Check video mapping!");
+                return;
+            }
+
+            // ✅ Update the video player **without navigating**
+            videoTitle.innerText = data.videoName;
+            videoSource.src = `/videos/${data.videoFile}`;
+            videoPlayer.load(); // Reload the video source
+            videoPlayer.play(); // Start playing the new video
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen 1 - Generation and Transmission</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: url('/images/bg.png') no-repeat center center;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 30px 50px;
+            border-radius: 5px;
+            margin-bottom: 50px;
+            position: relative;
+            margin-left: -50px;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 20px;
+            background: red;
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 36px;
+            color: #000;
+        }
+
+        .menu-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu-item {
+            border-bottom: 5px solid white;
+            margin-bottom: 20px;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .menu-link {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            padding: 15px 20px;
+            font-size: 30px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            padding-left: 10px;
+        }
+
+        .arrow {
+            width: 50px;
+            height: 50px;
+            background: red;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 30px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .menu-item:hover .arrow {
+            opacity: 1;
+        }
+
+        .back-button {
+            position: fixed;
+            bottom: 150px;
+            right: 90px;
+            border: none;
+            width: 320px;
+            height: 70px;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: url('/images/bbg.png') no-repeat center center;
+            background-size: cover;
+            color: white;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .subcontainer {
+            display: none;
+        }
+
+        .menu-item.active {
+            background: white !important;
+        }
+
+        .menu-item.active .menu-link {
+            color: black !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Screen 1 - Generation and Transmission</h1>
+        </div>
+
+        <div>
+            <ul class="menu-list">
+                <% const menuItems = ['Cable Accessories', 'Surge Arrestor', 'Enclosures', 'ELPS', 'Transformer', 'C&F']; %>
+                <% menuItems.forEach((item, index) => { %>
+                    <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
+                        <a href="#" class="menu-link">
+                            <%= item %>
+                            <span class="arrow">›</span>
+                        </a>
+                    </li>
+                <% }); %>
+            </ul>
+        </div>
+    </div>
+
+    <% const subcontainers = [
+        ['EHVCA', 'HVCA', 'MVCA'], // Subcontainer1 (Cable Accessories)
+        ['PCA', 'TLA'], // Subcontainer2 (Surge Arrestor)
+        ['JB'], // Subcontainer3 (Enclosures)
+        ['ELPS'], // Subcontainer4 (ELPS)
+        ['Oil Type'], // Subcontainer5 (Transformer)
+        ['AMPACT'] // Subcontainer6 (C&F)
+    ]; %>
+
+    <% subcontainers.forEach((subItems, index) => { %>
+        <div class="subcontainer" id="subcontainer<%= index + 1 %>">
+            <div>
+                <ul class="menu-list">
+                    <% subItems.forEach(subItem => { %>
+                        <li class="menu-item" data-item="<%= subItem %>">
+                            <a href="#" class="menu-link">
+                                <%= subItem %>
+                                <span class="arrow">›</span>
+                            </a>
+                        </li>
+                    <% }); %>
+                </ul>
+            </div>
+        </div>
+    <% }); %>
+
+    <button class="back-button">⬅ Back</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainMenuItems = document.querySelectorAll('.container .menu-item');
+            const subcontainers = document.querySelectorAll('.subcontainer');
+            const backButton = document.querySelector('.back-button');
+            const mainContainer = document.querySelector('.container');
+
+            const screenId = 1; // ✅ Change this for other screens (screen2, screen3, etc.)
+
+            // ✅ Handle main menu clicks (Show correct subcontainer)
+            mainMenuItems.forEach((item) => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+
+                    subcontainers.forEach(sub => sub.style.display = 'none');
+
+                    const subcontainerId = item.getAttribute('data-subcontainer');
+                    const subcontainer = document.getElementById(subcontainerId);
+
+                    if (subcontainer) {
+                        mainContainer.style.display = 'none';
+                        subcontainer.style.display = 'block';
+                        backButton.style.display = 'flex';
+                    }
+                });
+            });
+
+            // ✅ Handle back button click (Return to main menu)
+            backButton.addEventListener('click', () => {
+                subcontainers.forEach(sub => sub.style.display = 'none');
+                mainContainer.style.display = 'block';
+                backButton.style.display = 'none';
+            });
+
+            // ✅ Handle submenu item clicks (Send signal to server & highlight button)
+            document.querySelectorAll('.subcontainer .menu-item').forEach(subItem => {
+                subItem.addEventListener('click', async (e) => {
+                    e.preventDefault();
+
+                    const parentSubcontainer = subItem.closest('.subcontainer');
+                    parentSubcontainer.querySelectorAll('.menu-item').forEach(btn => btn.classList.remove('active'));
+
+                    subItem.classList.add('active');
+
+                    const itemText = subItem.querySelector('.menu-link').textContent.trim();
+
+                    try {
+                        const response = await fetch(`/track${screenId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ item: itemText }),
+                        });
+
+                        if (response.ok) {
+                            console.log(`Signal sent to server for screen ${screenId}:`, itemText);
+                        } else {
+                            console.error(`Failed to send signal for screen ${screenId}`);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
