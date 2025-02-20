@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -103,7 +104,7 @@
             bottom: 150px;
             right: 90px;
             border: none;
-            width: 320px;
+            width: 310px;
             height: 70px;
             font-size: 16px;
             cursor: pointer;
@@ -118,6 +119,7 @@
         }
 
         .subcontainer {
+            width: 800px;
             display: none;
         }
 
@@ -127,6 +129,36 @@
 
         .menu-item.active .menu-link {
             color: black !important;
+        }
+
+        .back-home-button {
+            position: absolute;
+            bottom: 15%;
+            /* Adjust to move it up */
+            left: 75%;
+            transform: translateX(-50%);
+            background: url('/images/bbg.png') no-repeat center center;
+            background-size: cover;
+            text-align: center;
+            width: 310px;
+            height: 70px;
+            border: none;
+            cursor: pointer;
+        }
+        .back-home-button1{
+            position: absolute;
+            bottom: 10%;
+            /* Adjust to move it up */
+            left: 20%;
+            transform: translateX(-50%);
+            background: url('/images/hbg.png') no-repeat center center;
+            background-size: cover;
+            text-align: center;
+            width: 310px;
+            height: 70px;
+            border: none;
+            cursor: pointer;
+
         }
     </style>
 </head>
@@ -140,111 +172,130 @@
 
         <div>
             <ul class="menu-list">
-                <% const menuItems = ['Cable Accessories', 'Surge Arrestor', 'MVCC', 'C&F', 'Safety']; %>
-                <% menuItems.forEach((item, index) => { %>
-                    <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
-                        <a href="#" class="menu-link">
-                            <%= item %>
-                            <span class="arrow">›</span>
-                        </a>
-                    </li>
-                <% }); %>
-            </ul>
-        </div>
-    </div>
-
-    <% const subcontainers = [
-        ['MVCA', 'LVCA'], // Subcontainer1 (Cable Accessories)
-        ['OCP2', 'DOV'], // Subcontainer2 (Surge Arrestor)
-        ['Cable', 'Acc'], // Subcontainer3 (MVCC)
-        ['AMPACT', 'LVABC'], // Subcontainer4 (C&F)
-        ['Gloves', 'Mat'], // Subcontainer5 (Safety)
-    ]; %>
-
-    <% subcontainers.forEach((subItems, index) => { %>
-        <div class="subcontainer" id="subcontainer<%= index + 1 %>">
-            <div>
-                <ul class="menu-list">
-                    <% subItems.forEach(subItem => { %>
-                        <li class="menu-item" data-item="<%= subItem %>">
+                <% const menuItems=['Cable Accessories', 'Surge Arrestor' , 'MVCC' , 'C&F' , 'Safety' ]; %>
+                    <% menuItems.forEach((item, index)=> { %>
+                        <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
                             <a href="#" class="menu-link">
-                                <%= subItem %>
-                                <span class="arrow">›</span>
+                                <%= item %>
+                                    <span class="arrow">›</span>
                             </a>
                         </li>
-                    <% }); %>
-                </ul>
-            </div>
+                        <% }); %>
+            </ul>
         </div>
-    <% }); %>
+        <button class="back-home-button"></button>
+    </div>
+    <% const subcontainers = [
+    ['MVCA', 'LVCA'], // Subcontainer1 (Cable Accessories)
+    ['OCP2', 'DOV','Indoor'], // Subcontainer2 (Surge Arrestor)
+    ['Cable', 'Acc'], // Subcontainer3 (MVCC)
+    ['AMPACT', 'LVABC'], // Subcontainer4 (C&F)
+    ['Gloves', 'Mat'] // Subcontainer5 (Safety)
+]; %>
+        <% subcontainers.forEach((subItems, index)=> { %>
+            <div class="subcontainer" id="subcontainer<%= index + 1 %>">
+                <div>
+                    <ul class="menu-list">
+                        <% subItems.forEach(subItem=> { %>
+                            <li class="menu-item" data-item="<%= subItem %>">
+                                <a href="#" class="menu-link">
+                                    <%= subItem %>
+                                </a>
+                            </li>
+                            <% }); %>
+                    </ul>
+                </div>
+            </div>
+            <% }); %>
 
-    <button class="back-button">⬅ Back</button>
+            <button class="back-button"></button>
+            <button class="back-home-button1"></button>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const mainMenuItems = document.querySelectorAll('.container .menu-item');
-            const subcontainers = document.querySelectorAll('.subcontainer');
-            const backButton = document.querySelector('.back-button');
-            const mainContainer = document.querySelector('.container');
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const mainMenuItems = document.querySelectorAll('.container .menu-item');
+                        const subcontainers = document.querySelectorAll('.subcontainer');
+                        const backButton = document.querySelector('.back-button');
+                        const mainContainer = document.querySelector('.container');
+                        const backHome = document.querySelector('.back-home-button');
+                        const backHome1 = document.querySelector('.back-home-button1');
 
-            const screenId = 2; // ✅ Change this for other screens (screen2, screen3, etc.)
+                        backButton.style.display = 'none';
+                        backHome1.style.display = 'none';
 
-            // ✅ Handle main menu clicks (Show correct subcontainer)
-            mainMenuItems.forEach((item) => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
+                        backHome1.onclick = function () {
+        window.location.href = "/";
+    };
 
-                    subcontainers.forEach(sub => sub.style.display = 'none');
+    backHome.onclick = function () {
+        window.location.href = "/";
+    };
 
-                    const subcontainerId = item.getAttribute('data-subcontainer');
-                    const subcontainer = document.getElementById(subcontainerId);
 
-                    if (subcontainer) {
-                        mainContainer.style.display = 'none';
-                        subcontainer.style.display = 'block';
-                        backButton.style.display = 'flex';
-                    }
-                });
-            });
 
-            // ✅ Handle back button click (Return to main menu)
-            backButton.addEventListener('click', () => {
-                subcontainers.forEach(sub => sub.style.display = 'none');
-                mainContainer.style.display = 'block';
-                backButton.style.display = 'none';
-            });
+                        const screenId = 2; // ✅ Change this for other screens (screen2, screen3, etc.)
 
-            // ✅ Handle submenu item clicks (Send signal to server & highlight button)
-            document.querySelectorAll('.subcontainer .menu-item').forEach(subItem => {
-                subItem.addEventListener('click', async (e) => {
-                    e.preventDefault();
+                        // ✅ Handle main menu clicks (Show correct subcontainer)
+                        mainMenuItems.forEach((item) => {
+                            item.addEventListener('click', (e) => {
+                                e.preventDefault();
 
-                    const parentSubcontainer = subItem.closest('.subcontainer');
-                    parentSubcontainer.querySelectorAll('.menu-item').forEach(btn => btn.classList.remove('active'));
+                                subcontainers.forEach(sub => sub.style.display = 'none');
 
-                    subItem.classList.add('active');
+                                const subcontainerId = item.getAttribute('data-subcontainer');
+                                const subcontainer = document.getElementById(subcontainerId);
 
-                    const itemText = subItem.querySelector('.menu-link').textContent.trim();
-
-                    try {
-                        const response = await fetch(`/track${screenId}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ item: itemText }),
+                                if (subcontainer) {
+                                    setTimeout(() => {
+                                        mainContainer.style.display = 'none';
+                                        subcontainer.style.display = 'block';
+                                        backButton.style.display = 'flex';
+                                        backHome1.style.display = 'flex';
+                                    }, 1000); // ✅ 2 seconds delay
+                                }
+                            });
                         });
 
-                        if (response.ok) {
-                            console.log(`Signal sent to server for screen ${screenId}:`, itemText);
-                        } else {
-                            console.error(`Failed to send signal for screen ${screenId}`);
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                    }
-                });
-            });
-        });
-    </script>
+                        // ✅ Handle back button click (Return to main menu)
+                        backButton.addEventListener('click', () => {
+                            subcontainers.forEach(sub => sub.style.display = 'none');
+                            mainContainer.style.display = 'block';
+                            backButton.style.display = 'none';
+                            backHome1.style.display = 'none'; 
+                        });
+
+                        // ✅ Handle submenu item clicks (Send signal to server & highlight button)
+                        document.querySelectorAll('.subcontainer .menu-item').forEach(subItem => {
+                            subItem.addEventListener('click', async (e) => {
+                                e.preventDefault();
+
+                                const parentSubcontainer = subItem.closest('.subcontainer');
+                                parentSubcontainer.querySelectorAll('.menu-item').forEach(btn => btn.classList.remove('active'));
+
+                                subItem.classList.add('active');
+
+                                const itemText = subItem.querySelector('.menu-link').textContent.trim();
+
+                                try {
+                                    const response = await fetch(`/track${screenId}`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ item: itemText }),
+                                    });
+
+                                    if (response.ok) {
+                                        console.log(`Signal sent to server for screen ${screenId}:`, itemText);
+                                    } else {
+                                        console.error(`Failed to send signal for screen ${screenId}`);
+                                    }
+                                } catch (error) {
+                                    console.error('Error:', error);
+                                }
+                            });
+                        });
+                    });
+                </script>
 
 </body>
+
 </html>

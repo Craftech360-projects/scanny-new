@@ -1,63 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Player</title>
+    <title>Video Player with Background Image</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            position: relative;
             background: black;
-            color: white;
-            flex-direction: column;
         }
+
+        #image-container {
+            width: 100vw;
+            height: 100vh;
+            overflow-x: auto;
+            /* Enable horizontal scrolling */
+            overflow-y: hidden;
+            white-space: nowrap;
+            position: absolute;
+            top: 0;
+            left: 0;
+            scroll-behavior: smooth;
+            overflow-x: scroll !important;
+            /* Force scrollbar */
+            scroll-snap-type: x mandatory;
+            /* Smooth scrolling */
+        }
+
+        .bg-image {
+            width: 6480px;
+            height: 100vh;
+            object-fit: cover;
+            display: inline-block;
+        }
+
         video {
-            width: 80%;
-            max-width: 800px;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            display: none;
         }
-        .message {
-            font-size: 24px;
-            margin-bottom: 20px;
+
+        /* Default Video (Hidden Initially) */
+        #defaultVideo {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            display: none;
+            /* Initially hidden */
+        }
+
+        /* Main Video Player */
+        #videoPlayer {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            display: none;
+            /* Initially hidden */
+            z-index: 2;
+            /* Above the background */
         }
     </style>
 </head>
-<body>
-    <div class="message">Playing Video for: <span id="videoTitle"><%= videoName %></span></div>
 
-    <video id="videoPlayer" controls autoplay>
-        <source id="videoSource" src="/videos/<%= videoFile %>" type="video/mp4">
+<body>
+
+    <!-- Background Image -->
+    <div id="image-container">
+        <img class="bg-image" src="/images/bg3.jpg" alt="Background">
+    </div>
+
+    <!-- Default looping video (Hidden Initially) -->
+    <video id="defaultVideo" loop autoplay muted>
+        <source src="/videos/default.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
 
-    <button onclick="window.location.href='/'">⬅ Back</button>
+    <!-- Main Video Player -->
+    <video id="videoPlayer" controls>
+        <source id="videoSource" src="" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const videoPlayer = document.getElementById('videoPlayer');
         const videoSource = document.getElementById('videoSource');
-        const videoTitle = document.getElementById('videoTitle');
+        const defaultVideo = document.getElementById('defaultVideo');
+        const imageContainer = document.getElementById('image-container');
 
-        // ✅ Connect to the server using Socket.IO
-        const socket = io();
+        const socket = io(); // Connect to the server
 
-        // ✅ Listen for video change signals
+        function pauseAndHideAll() {
+            console.log("⏸️ Pausing all videos and hiding them.");
+            defaultVideo.pause();
+            defaultVideo.style.display = 'none';
+            videoPlayer.pause();
+            videoPlayer.style.display = 'none';
+        }
+
+        function playNewVideo(videoFile) {
+            pauseAndHideAll();
+            videoSource.src = `/videos/${videoFile}`;
+            videoPlayer.style.display = 'block';
+            videoPlayer.load();
+            videoPlayer.play();
+        }
+        let scrollAnimationFrame;
+
+function scrollBackground(button) {
+    const positionMap = {
+        'btn6':0,
+        'btn1': 1080,
+        'btn2': 2160,
+        'btn3': 3240,
+        'btn4': 4320,
+        'btn5': 5400
+    };
+
+    const targetPosition = positionMap[button] || 0;
+    const startPosition = imageContainer.scrollLeft;
+    const distance = targetPosition - startPosition;
+    const baseDuration = 9000; // Base duration for the animation
+    const stepDistance = 1080; // Distance for each step
+    const duration = baseDuration * (Math.abs(distance) / stepDistance); // Adjust duration based on distance
+
+    let startTime = null;
+
+    function animateScroll(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        const easedProgress = easeOutQuad(progress);
+
+        imageContainer.scrollLeft = startPosition + distance * easedProgress;
+
+        if (progress < 1) {
+            scrollAnimationFrame = requestAnimationFrame(animateScroll);
+        }
+    }
+
+    function easeOutQuad(t) {
+        return t * (2 - t); // Easing function for smooth deceleration
+    }
+
+    // Cancel any previous animation before starting a new one
+    if (scrollAnimationFrame) {
+        cancelAnimationFrame(scrollAnimationFrame);
+    }
+
+    scrollAnimationFrame = requestAnimationFrame(animateScroll);
+}
+
+        function playDefaultVideo() {
+            pauseAndHideAll();
+            console.log("▶ Playing default video");
+            defaultVideo.style.display = 'block';
+            defaultVideo.play();
+        }
+
         socket.on('videoChange', (data) => {
-            console.log('🔔 Video change signal received:', data);
-
+            console.log('🎬 Normal video change received:', data);
             if (!data.videoFile || data.videoFile === "default.mp4") {
-                console.warn("⚠️ Received default.mp4 - Check video mapping!");
+                console.warn(" Invalid video file received!");
+                return;
+            }
+            playNewVideo(data.videoFile);
+        });
+
+        socket.on('move', (data) => {
+            console.log('🚀 Moving triggered with button:', data.button);
+
+            // ✅ Use the button data to scroll
+            scrollBackground(data.button);
+        });
+
+
+        socket.on('specialVideoChange', (data) => {
+            console.log('🎬 Special video triggered:', data.videoFile);
+
+            if (!data.videoFile) {
+                console.warn("⚠️ Invalid special video file received!");
                 return;
             }
 
-            // ✅ Update the video player **without navigating**
-            videoTitle.innerText = data.videoName;
-            videoSource.src = `/videos/${data.videoFile}`;
-            videoPlayer.load(); // Reload the video source
-            videoPlayer.play(); // Start playing the new video
+            // ✅ Play the video (No scrolling here)
+            playNewVideo(data.videoFile);
+            console.log("playing this video ",data.videoFile )
+        });
+
+
+
+  
+        socket.on('hideEverythinginVideoScreen', () => {
+            console.log(' Received hideEverything signal! Hiding all videos and showing background image.');
+
+            // Pause and hide both videos
+            videoPlayer.pause();
+            videoPlayer.style.display = 'none';
+
+            defaultVideo.pause();
+            defaultVideo.style.display = 'none';
+
+            // Show only the background image
+            document.getElementById('image-container').style.display = 'block';
+        });
+
+        videoPlayer.addEventListener('ended', () => {
+            console.log('🎬 Main video ended, pausing.');
+            videoPlayer.pause(); // Stop at last frame
+            videoPlayer.style.display = 'none';
         });
     </script>
 </body>
+
 </html>

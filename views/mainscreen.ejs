@@ -69,7 +69,8 @@
                 { id: 'btn2', label: 'B1', image: '/images/b2.png', activeImage: '/images/ab2.png', page: '/screen2' },
                 { id: 'btn3', label: 'C1', image: '/images/b3.png', activeImage: '/images/ab3.png', page: '/screen3' },
                 { id: 'btn4', label: 'D1', image: '/images/b4.png', activeImage: '/images/ab4.png', page: '/screen4' },
-                { id: 'btn5', label: 'E1', image: '/images/b5.png', activeImage: '/images/ab5.png', page: '/screen5' }
+                { id: 'btn5', label: 'E1', image: '/images/b5.png', activeImage: '/images/ab5.png', page: '/screen5' },
+                { id: 'btn6', label: 'F1', image: '/images/b6.png', activeImage: '/images/ab6.png', page: '' } // btn6 resets video only
             ]; %>
 
             <% buttons.forEach(button => { %>
@@ -80,16 +81,26 @@
                         data-page="<%= button.page %>"
                         style="background-image: url('<%= button.image %>');"
                         onclick="handleButtonClick('<%= button.id %>')">
-                        <span><%= button.label %></span>
+                        <!-- <span><%= button.label %></span> -->
                     </button>
                 </div>
             <% }); %>
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        const socket = io(); // Connect to the server
+
         function handleButtonClick(id) {
-            // Reset all buttons to their default images
+            // if (id === 'btn6') {
+            //     // ✅ btn6 only sends '0' and does nothing else
+            //     console.log("🔄 Reset button clicked, sending '0' to server...");
+            //     socket.emit('resetVideoRecived', { message: "btn0" });
+            //     return; // Stop further execution (no navigation or styling changes)
+            // }
+
+            // ✅ For all other buttons, reset styles and send event
             document.querySelectorAll('.nav-button').forEach(button => {
                 button.style.backgroundImage = `url('${button.dataset.image}')`;
             });
@@ -98,15 +109,24 @@
             const activeButton = document.getElementById(id);
             activeButton.style.backgroundImage = `url('${activeButton.dataset.activeImage}')`;
 
+            // Send button click event to the server
+            socket.emit('buttonClick', { message: id });
+
+            console.log(`Sent: ${id}`);
+
             // Delay for 2 seconds before navigating
             const page = activeButton.dataset.page;
             setTimeout(() => {
-                window.location.href = page; // Navigate to the respective screen
-            }, 2000); // 2000 milliseconds = 2 seconds
+                if (page) {
+                    window.location.href = page; // Navigate to the respective screen
+                }
+            }, 1000);
         }
+
+        // Listen for a response from the server
+        socket.on('serverResponse', (data) => {
+            console.log('Received from server:', data);
+        });
     </script>
 </body>
-
-
-
 </html>

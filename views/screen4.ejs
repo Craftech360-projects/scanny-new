@@ -103,7 +103,7 @@
             bottom: 150px;
             right: 90px;
             border: none;
-            width: 320px;
+            width: 310px;
             height: 70px;
             font-size: 16px;
             cursor: pointer;
@@ -118,6 +118,7 @@
         }
 
         .subcontainer {
+            width: 800px;
             display: none;
         }
 
@@ -128,6 +129,35 @@
         .menu-item.active .menu-link {
             color: black !important;
         }
+        .back-home-button {
+            position: absolute;
+            bottom: 15%;
+            /* Adjust to move it up */
+            left: 75%;
+            transform: translateX(-50%);
+            background: url('/images/bbg.png') no-repeat center center;
+            background-size: cover;
+            text-align: center;
+            width: 310px;
+            height: 70px;
+            border: none;
+            cursor: pointer;
+        }
+        .back-home-button1{
+            position: absolute;
+            bottom: 10%;
+            /* Adjust to move it up */
+            left: 20%;
+            transform: translateX(-50%);
+            background: url('/images/hbg.png') no-repeat center center;
+            background-size: cover;
+            text-align: center;
+            width: 310px;
+            height: 70px;
+            border: none;
+            cursor: pointer;
+
+        }
     </style>
 </head>
 
@@ -135,7 +165,7 @@
 
     <div class="container">
         <div class="header">
-            <h1>Screen 1 - Generation and Transmission</h1>
+            <h1>Screen 4 - reviwen</h1>
         </div>
 
         <div>
@@ -151,6 +181,7 @@
                 <% }); %>
             </ul>
         </div>
+        <button class="back-home-button"></button>
     </div>
 
     <% const subcontainers = [
@@ -179,7 +210,8 @@
         </div>
     <% }); %>
 
-    <button class="back-button">⬅ Back</button>
+    <button class="back-button"></button>
+    <button class="back-home-button1"></button>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -187,6 +219,19 @@
             const subcontainers = document.querySelectorAll('.subcontainer');
             const backButton = document.querySelector('.back-button');
             const mainContainer = document.querySelector('.container');
+            const backHome = document.querySelector('.back-home-button');
+                        const backHome1 = document.querySelector('.back-home-button1');
+
+                        backButton.style.display = 'none';
+                        backHome1.style.display = 'none';
+
+                        backHome1.onclick = function () {
+        window.location.href = "/";
+    };
+
+    backHome.onclick = function () {
+        window.location.href = "/";
+    };
 
             const screenId = 1; // ✅ Change this for other screens (screen2, screen3, etc.)
 
@@ -201,9 +246,12 @@
                     const subcontainer = document.getElementById(subcontainerId);
 
                     if (subcontainer) {
+                        setTimeout(() => { 
                         mainContainer.style.display = 'none';
                         subcontainer.style.display = 'block';
                         backButton.style.display = 'flex';
+                        backHome1.style.display = 'flex';
+                    }, 1000); // ✅ 2 seconds delay
                     }
                 });
             });
@@ -213,6 +261,7 @@
                 subcontainers.forEach(sub => sub.style.display = 'none');
                 mainContainer.style.display = 'block';
                 backButton.style.display = 'none';
+                backHome1.style.display = 'none';
             });
 
             // ✅ Handle submenu item clicks (Send signal to server & highlight button)

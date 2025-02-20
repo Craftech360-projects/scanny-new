@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -103,7 +104,7 @@
             bottom: 150px;
             right: 90px;
             border: none;
-            width: 320px;
+            width: 310px;
             height: 70px;
             font-size: 16px;
             cursor: pointer;
@@ -118,6 +119,7 @@
         }
 
         .subcontainer {
+            width: 800px;
             display: none;
         }
 
@@ -127,6 +129,36 @@
 
         .menu-item.active .menu-link {
             color: black !important;
+        }
+
+        .back-home-button {
+            position: absolute;
+            bottom: 15%;
+            /* Adjust to move it up */
+            left: 75%;
+            transform: translateX(-50%);
+            background: url('/images/bbg.png') no-repeat center center;
+            background-size: cover;
+            text-align: center;
+            width: 310px;
+            height: 70px;
+            border: none;
+            cursor: pointer;
+        }
+        .back-home-button1{
+            position: absolute;
+            bottom: 10%;
+            /* Adjust to move it up */
+            left: 20%;
+            transform: translateX(-50%);
+            background: url('/images/hbg.png') no-repeat center center;
+            background-size: cover;
+            text-align: center;
+            width: 310px;
+            height: 70px;
+            border: none;
+            cursor: pointer;
+
         }
     </style>
 </head>
@@ -140,111 +172,147 @@
 
         <div>
             <ul class="menu-list">
-                <% const menuItems = ['Cable Accessories', 'Surge Arrestor', 'Enclosures', 'ELPS', 'Transformer', 'C&F']; %>
-                <% menuItems.forEach((item, index) => { %>
-                    <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
-                        <a href="#" class="menu-link">
-                            <%= item %>
-                            <span class="arrow">›</span>
-                        </a>
-                    </li>
-                <% }); %>
-            </ul>
-        </div>
-    </div>
-
-    <% const subcontainers = [
-        ['EHVCA', 'HVCA', 'MVCA'], // Subcontainer1 (Cable Accessories)
-        ['PCA', 'TLA'], // Subcontainer2 (Surge Arrestor)
-        ['JB'], // Subcontainer3 (Enclosures)
-        ['ELPS'], // Subcontainer4 (ELPS)
-        ['Oil Type'], // Subcontainer5 (Transformer)
-        ['AMPACT'] // Subcontainer6 (C&F)
-    ]; %>
-
-    <% subcontainers.forEach((subItems, index) => { %>
-        <div class="subcontainer" id="subcontainer<%= index + 1 %>">
-            <div>
-                <ul class="menu-list">
-                    <% subItems.forEach(subItem => { %>
-                        <li class="menu-item" data-item="<%= subItem %>">
+                <% const menuItems=['Cable Accessories', 'Surge Arrestor' , 'Enclosures' , 'ELPS' , 'Transformer'
+                    , 'C&F' ]; %>
+                    <% menuItems.forEach((item, index)=> { %>
+                        <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
                             <a href="#" class="menu-link">
-                                <%= subItem %>
-                                <span class="arrow">›</span>
+                                <%= item %>
+                                    <span class="arrow">›</span>
                             </a>
                         </li>
-                    <% }); %>
-                </ul>
-            </div>
+                        <% }); %>
+            </ul>
         </div>
-    <% }); %>
+        <button class="back-home-button"></button>
 
-    <button class="back-button">⬅ Back</button>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const mainMenuItems = document.querySelectorAll('.container .menu-item');
-            const subcontainers = document.querySelectorAll('.subcontainer');
-            const backButton = document.querySelector('.back-button');
-            const mainContainer = document.querySelector('.container');
+        <!-- ✅ Back to Home Button -->
+    </div>
 
-            const screenId = 1; // ✅ Change this for other screens (screen2, screen3, etc.)
 
-            // ✅ Handle main menu clicks (Show correct subcontainer)
-            mainMenuItems.forEach((item) => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
+ 
+    <% const subcontainers = [
+    ['EHVCA', 'HVCA', 'MVCA'], // Subcontainer1 (Cable Accessories)
+    ['PCA', 'TLA'], // Subcontainer2 (Surge Arrestor)
+    ['JB'], // Subcontainer3 (Enclosures)
+    ['ELPS'], // Subcontainer4 (ELPS)
+    ['Oil Type'], // Subcontainer5 (Transformer)
+    ['AMPACT'] // Subcontainer6 (C&F)
+]; %>
 
-                    subcontainers.forEach(sub => sub.style.display = 'none');
+        <% subcontainers.forEach((subItems, index)=> { %>
+            <div class="subcontainer" id="subcontainer<%= index + 1 %>">
+                <div>
+                    <ul class="menu-list">
+                        <% subItems.forEach(subItem=> { %>
+                            <li class="menu-item" data-item="<%= subItem %>">
+                                <a href="#" class="menu-link">
+                                    <%= subItem %>
+                                </a>
+                            </li>
+                            <% }); %>
+                    </ul>
+                </div>
+            </div>
+            <% }); %>
 
-                    const subcontainerId = item.getAttribute('data-subcontainer');
-                    const subcontainer = document.getElementById(subcontainerId);
+                <button class="back-button"></button>
+                <button class="back-home-button1"></button>
 
-                    if (subcontainer) {
-                        mainContainer.style.display = 'none';
-                        subcontainer.style.display = 'block';
-                        backButton.style.display = 'flex';
-                    }
-                });
-            });
+                <script src="/socket.io/socket.io.js"></script>
+                <script>
+                    
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const mainMenuItems = document.querySelectorAll('.container .menu-item');
+                        const subcontainers = document.querySelectorAll('.subcontainer');
+                        const backButton = document.querySelector('.back-button');
+                        const mainContainer = document.querySelector('.container');
+                        const backHome = document.querySelector('.back-home-button');
+                        const backHome1 = document.querySelector('.back-home-button1');
 
-            // ✅ Handle back button click (Return to main menu)
-            backButton.addEventListener('click', () => {
-                subcontainers.forEach(sub => sub.style.display = 'none');
-                mainContainer.style.display = 'block';
-                backButton.style.display = 'none';
-            });
+                        backButton.style.display = 'none';
+                        backHome1.style.display = 'none';
+                        const socket = io();
 
-            // ✅ Handle submenu item clicks (Send signal to server & highlight button)
-            document.querySelectorAll('.subcontainer .menu-item').forEach(subItem => {
-                subItem.addEventListener('click', async (e) => {
-                e.preventDefault();
+                        backHome1.onclick = function () {
 
-                let itemText = subItem.querySelector('.menu-link').textContent.trim();
-                itemText = itemText.replace(/\s+›$/, ''); // ✅ Remove unwanted symbols
+                            socket.emit('hideEverything');
+        window.location.href = "/";
 
-                const screenId = 1; // ✅ Update according to the screen number
 
-                try {
-                    // ✅ Send cleaned button text
-                    const response = await fetch(`/track${screenId}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ item: itemText }),
+    };
+
+    backHome.onclick = function () {
+        window.location.href = "/";
+    };
+
+
+
+                        const screenId = 1; // ✅ Change this for other screens (screen2, screen3, etc.)
+
+                        // ✅ Handle main menu clicks (Show correct subcontainer)
+                        mainMenuItems.forEach((item) => {
+                            item.addEventListener('click', (e) => {
+                                e.preventDefault();
+
+                                subcontainers.forEach(sub => sub.style.display = 'none');
+
+                                const subcontainerId = item.getAttribute('data-subcontainer');
+                                const subcontainer = document.getElementById(subcontainerId);
+
+                                if (subcontainer) {
+                                    setTimeout(() => {
+                                        mainContainer.style.display = 'none';
+                                        subcontainer.style.display = 'block';
+                                        backButton.style.display = 'flex';
+                                        backHome1.style.display = 'flex';
+                                    }, 1000); // ✅ 2 seconds delay
+                                }
+                            });
+                        });
+
+
+                        // ✅ Handle back button click (Return to main menu)
+                        backButton.addEventListener('click', () => {
+                            subcontainers.forEach(sub => sub.style.display = 'none');
+                            mainContainer.style.display = 'block';
+                            backButton.style.display = 'none';
+                            backHome1.style.display = 'none'; 
+                            
+                        });
+
+                        // ✅ Handle submenu item clicks (Send signal to server & highlight button)
+                        document.querySelectorAll('.subcontainer .menu-item').forEach(subItem => {
+                            subItem.addEventListener('click', async (e) => {
+                                e.preventDefault();
+
+                                let itemText = subItem.querySelector('.menu-link').textContent.trim();
+                                itemText = itemText.replace(/\s+›$/, ''); // ✅ Remove unwanted symbols
+
+                                const screenId = 1; // ✅ Update according to the screen number
+
+                                try {
+                                    // ✅ Send cleaned button text
+                                    const response = await fetch(`/track${screenId}`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ item: itemText }),
+                                    });
+
+                                    if (response.ok) {
+                                        console.log(`✅ Signal sent for screen ${screenId}:`, itemText);
+                                    } else {
+                                        console.error(`❌ Failed to send signal for screen ${screenId}`);
+                                    }
+                                } catch (error) {
+                                    console.error('❌ Error:', error);
+                                }
+                            });
+                        });
                     });
-
-                    if (response.ok) {
-                        console.log(`✅ Signal sent for screen ${screenId}:`, itemText);
-                    } else {
-                        console.error(`❌ Failed to send signal for screen ${screenId}`);
-                    }
-                } catch (error) {
-                    console.error('❌ Error:', error);
-                }
-            });
-            });
-        });
-    </script>
+                </script>
 
 </body>
+
 </html>

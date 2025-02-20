@@ -21,6 +21,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let lastClickedItem = ''; // ✅ Store last clicked item
 
+
+
 // ✅ Define separate video mappings for different screens
 const videoMappings = {
     "1": {
@@ -38,12 +40,13 @@ const videoMappings = {
         'MVCA': 'VB1.mp4',
         'LVCA': 'VB2.mp4',
         'OCP2': 'VB3.mp4',
+        'Indoor': 'VB12.mp4',
         'DOV': 'VB4.mp4',
         'Cable': 'VB6.mp4',
         'Acc': 'VB7.mp4',
         'AMPACT': 'VB8.mp4',
         'LVABC': 'VB9.mp4',
-        'Gloves':'VB10.mp4',
+        'Gloves': 'VB10.mp4',
         'Mat': 'VB11.mp4'
     },
     "3": {
@@ -100,9 +103,9 @@ app.post('/track:id', (req, res) => {
     if (item) {
         lastClickedItem = item;
         const videoFile = getVideoFile(screenId, item);
-        
-        console.log(`📢 Emitting 'videoChange' with video: ${videoFile} for screen ${screenId}`);
 
+        console.log(`📢 Emitting 'videoChange' with video: ${videoFile} for screen ${screenId}`);
+//emit after the tv reaches to that respective position 
         // ✅ Emit event to update `videoPlayer.ejs`
         io.emit(`videoChange`, { videoFile, videoName: item });
 
@@ -118,9 +121,51 @@ app.post('/track:id', (req, res) => {
 io.on('connection', (socket) => {
     console.log('✅ Client connected');
 
-    socket.on('disconnect', () => {
-        console.log('⚠️ Client disconnected');
+    // socket.on('resetVideoRecived', (data) => {
+    //     console.log('Received from client:', data.message);
+
+    //     if (data.message === "btn0") {
+    //         io.emit('resetVideo'); // 🔄 Tell all clients to reset to default video
+    //     }
+    // });
+
+    socket.on('hideEverything', () => {
+        console.log('🔴 Hiding everything triggered!');
+        // ✅ Broadcast to all clients if needed
+        io.emit('hideEverythinginVideoScreen');
     });
+
+
+    socket.on('buttonClick', (data) => {
+        console.log('Received from client:', data.message);
+    
+        // ✅ Emit only the button number for scrolling
+        io.emit('move', { button: data.message });
+    
+        console.log("🟢 Move emitted with button:", data.message);
+    
+        // ✅ Extract numeric part from button (e.g., "btn1" → "1")
+        const buttonNumber = data.message.replace(/\D/g, ""); 
+    
+        // ✅ Map button numbers to video files for special animation
+        const specialVideoMapping = {
+            "6":"default.mp4",
+            "1": "animation1.mp4",
+            "2": "animation2.mp4",
+            "3": "animation3.mp4",
+            "4": "animation4.mp4",
+            "5": "animation5.mp4"
+        };
+    
+        const videoFile = specialVideoMapping[buttonNumber] || "default.mp4";
+    
+        console.log(`📢 Will play special video: ${videoFile} (After delay)`);
+    
+        setTimeout(() => {
+            io.emit('specialVideoChange', { videoFile });
+        }, 4000);
+    });
+    
 });
 
 // ✅ Start the server
