@@ -319,7 +319,7 @@ async function startModbusReadingTest() {
         } catch (err) {
             console.error(chalk.red(`Error in dummy Modbus reading: ${err.message}`));
         }
-        await new Promise(resolve => setTimeout(resolve, 1000000)); // Read every second
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Read every second
     }
 }
 
@@ -341,9 +341,9 @@ io.on('connection', (socket) => {
 
 
         //initialising 
-        await initializeModbusClient();
+        // await initializeModbusClient();
         //writting
-        await handleSequentialWrites(parseInt(buttonNumber));
+        // await handleSequentialWrites(parseInt(buttonNumber));
         io.emit('move', { button: buttonNumber });
         console.log("🟢 Move emitted with button:", buttonNumber);
         if (isVideoPlaying) {
