@@ -170,7 +170,7 @@
 
         <div>
             <ul class="menu-list">
-                <% const menuItems = ['EV', 'Safty', 'ELPS', 'Transformer', 'Enclosures', 'BTP', 'Raysulate']; %>
+                <% const menuItems = ['EV', 'Safety', 'ELPS', 'Transformer', 'Enclosures', 'BTP-Customization', 'Raysulate','Surge Arrestor']; %>
                 <% menuItems.forEach((item, index) => { %>
                     <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
                         <a href="#" class="menu-link">
@@ -185,13 +185,14 @@
     </div>
 
     <% const subcontainers = [
-        ['Busbar'],
-        ['Gloves', 'Mat','Arcsuit'], 
-        ['Industrial protection', 'Oil and Gas protection'], 
+        ['EV Bus Bars'],
+        ['Electrical Insulating Gloves', 'Electrical Insulating Matting','ARC Flash Protection'], 
+        ['Industrial Protection & Oil and Gas protection'], 
         ['Oil Type'], 
-        ['JB', 'SS Enclosure'], 
-        ['Customisation'] ,
-        ['Diff'] 
+        ['JB-Junction Box', 'Stainless Steel Enclosure'], 
+        ['CNC Machining','Casting Process','Sheet metal & Fabrication'] ,
+        ['Diff'],
+        ['Indoor PCA & DOV']
     ]; %>
 
     <% subcontainers.forEach((subItems, index) => { %>
@@ -234,7 +235,7 @@
         window.location.href = "/";
     };
 
-            const screenId = 1; // ✅ Change this for other screens (screen2, screen3, etc.)
+            const screenId = 4; // ✅ Change this for other screens (screen2, screen3, etc.)
 
             // ✅ Handle main menu clicks (Show correct subcontainer)
             mainMenuItems.forEach((item) => {

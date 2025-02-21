@@ -185,13 +185,13 @@
     </div>
 
     <% const subcontainers = [
-        ['g1.6', 'Postpaid', 'prepaid'], 
-        ['Building Not Doing'], 
+        ['G1.6 Gas Meter', 'Smart Postpaid Gas Meter', 'Smart Prepaid Gas Meter'], 
+        ['Industrial Protection & Oil and Gas protection'], 
         ['Energy Power Division-service (EPD-Service)'], 
-        ['Gloves'], 
+        ['Electrical Insulating Gloves'], 
         ['AB Acc'], 
-        ['MCS','ATD','Dropper','Insulator'],
-        ['Lugs','ties','Glands']
+        ['MCS','ATD','Insulator'],
+        ['Lugs','Clamping','Glands']
     ]; %>
 
     <% subcontainers.forEach((subItems, index) => { %>
@@ -232,7 +232,7 @@
     backHome.onclick = function () {
         window.location.href = "/";
     };
-            const screenId = 1; // ✅ Change this for other screens (screen2, screen3, etc.)
+            const screenId = 5; // ✅ Change this for other screens (screen2, screen3, etc.)
 
             // ✅ Handle main menu clicks (Show correct subcontainer)
             mainMenuItems.forEach((item) => {

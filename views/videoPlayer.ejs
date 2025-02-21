@@ -33,7 +33,6 @@
             position: absolute;
             top: 0;
             left: 0;
-            scroll-behavior: smooth;
             overflow-x: scroll !important;
             /* Force scrollbar */
             scroll-snap-type: x mandatory;
@@ -127,48 +126,48 @@
         }
         let scrollAnimationFrame;
 
-function scrollBackground(button) {
-    const positionMap = {
-        '6':0,
-        '1': 1080,
-        '2': 2160,
-        '3': 3240,
-        '4': 4320,
-        '5': 5400
-    };
+        function scrollBackground(button) {
+            const positionMap = {
+                '6': 0,
+                '1': 1080,
+                '2': 2160,
+                '3': 3240,
+                '4': 4320,
+                '5': 5400
+            };
 
-    const targetPosition = positionMap[button] || 0;
-    const startPosition = imageContainer.scrollLeft;
-    const distance = targetPosition - startPosition;
-    const baseDuration = 9000; // Base duration for the animation
-    const stepDistance = 1080; // Distance for each step
-    const duration = baseDuration * (Math.abs(distance) / stepDistance); // Adjust duration based on distance
+            const targetPosition = positionMap[button] || 0;
+            const startPosition = imageContainer.scrollLeft;
+            const distance = targetPosition - startPosition;
+            const baseDuration = 8000; // Base duration for the animation
+            const stepDistance = 1080; // Distance for each step
+            const duration = baseDuration * (Math.abs(distance) / stepDistance); // Adjust duration based on distance
 
-    let startTime = null;
+            let startTime = null;
 
-    function animateScroll(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const progress = Math.min((timestamp - startTime) / duration, 1);
-        const easedProgress = easeOutQuad(progress);
+            function animateScroll(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const easedProgress = easeOutQuad(progress);
 
-        imageContainer.scrollLeft = startPosition + distance * easedProgress;
+                imageContainer.scrollLeft = startPosition + distance * easedProgress;
 
-        if (progress < 1) {
+                if (progress < 1) {
+                    scrollAnimationFrame = requestAnimationFrame(animateScroll);
+                }
+            }
+
+            function easeOutQuad(t) {
+                return t * (2 - t); // Easing function for smooth deceleration
+            }
+
+            // Cancel any previous animation before starting a new one
+            if (scrollAnimationFrame) {
+                cancelAnimationFrame(scrollAnimationFrame);
+            }
+
             scrollAnimationFrame = requestAnimationFrame(animateScroll);
         }
-    }
-
-    function easeOutQuad(t) {
-        return t * (2 - t); // Easing function for smooth deceleration
-    }
-
-    // Cancel any previous animation before starting a new one
-    if (scrollAnimationFrame) {
-        cancelAnimationFrame(scrollAnimationFrame);
-    }
-
-    scrollAnimationFrame = requestAnimationFrame(animateScroll);
-}
 
         function playDefaultVideo() {
             pauseAndHideAll();
@@ -205,12 +204,12 @@ function scrollBackground(button) {
 
             // ✅ Play the video (No scrolling here)
             playNewVideo(data.videoFile);
-            console.log("playing this video ",data.videoFile )
+            console.log("playing this video ", data.videoFile)
         });
 
 
 
-  
+
         socket.on('hideEverythinginVideoScreen', () => {
             console.log(' Received hideEverything signal! Hiding all videos and showing background image.');
 

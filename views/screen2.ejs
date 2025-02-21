@@ -187,10 +187,10 @@
     </div>
     <% const subcontainers = [
     ['MVCA', 'LVCA'], // Subcontainer1 (Cable Accessories)
-    ['OCP2', 'DOV','Indoor'], // Subcontainer2 (Surge Arrestor)
-    ['Cable', 'Acc'], // Subcontainer3 (MVCC)
+    ['OCP2 - Station Low class (SL)', 'DOV - Distribution High class (DH)','Indoor'], // Subcontainer2 (Surge Arrestor)
+    ['Covered Conductor', 'MVCC Accessories'], // Subcontainer3 (MVCC)
     ['AMPACT', 'LVABC'], // Subcontainer4 (C&F)
-    ['Gloves', 'Mat'] // Subcontainer5 (Safety)
+    ['Electrical Insulating Gloves', 'Electrical Insulating Matting'] // Subcontainer5 (Safety)
 ]; %>
         <% subcontainers.forEach((subItems, index)=> { %>
             <div class="subcontainer" id="subcontainer<%= index + 1 %>">

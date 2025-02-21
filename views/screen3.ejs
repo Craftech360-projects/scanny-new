@@ -172,7 +172,7 @@
 
         <div>
             <ul class="menu-list">
-                <% const menuItems=['Solar', 'Trafo' , 'Cable Accessories' , 'Surge Arrestor' ]; %>
+                <% const menuItems=['Solar', 'Transformers' , 'Cable Accessories' , 'Surge Arrestor' ]; %>
                     <% menuItems.forEach((item, index)=> { %>
                         <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
                             <a href="#" class="menu-link">
@@ -187,10 +187,10 @@
     </div>
 
     <% const subcontainers = [
-    ['Connector', 'JB'], // Subcontainer1 (Cable Accessories)
-    ['Solar Trafo'], // Subcontainer2 (Surge Arrestor)
+    ['PV4-S Connectors', 'JB-Junction Box'], // Subcontainer1 (Cable Accessories)
+    ['Solar Transformers'], // Subcontainer2 (Surge Arrestor)cd screen
     ['MVCA'], // Subcontainer3 (Enclosures)
-    ['PCA', 'OCP'] // Subcontainer4 (ELPS)
+    ['PCA-Station Medium-Class (SM)', 'OCP2-Station Low Class (SL)','DOV-Distribution High Class (DH)'] // Subcontainer4 (ELPS)
 ]; %>
 
         <% subcontainers.forEach((subItems, index)=> { %>

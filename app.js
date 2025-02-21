@@ -30,7 +30,7 @@ const TRIGGER_RANGES = [
 ];
 let lastDetectedIndex = null;
 let triggerStartTime = null;
-const TRIGGER_DURATION = 60000; // 1 minute in milliseconds
+const TRIGGER_DURATION = 10000; // 1 minute in milliseconds
 let isVideoPlaying = false;
 let modbusClient;
 let isModbusConnected = false;
@@ -57,65 +57,67 @@ let lastClickedItem = ''; // ✅ Store last clicked item
 
 const videoMappings = {
     "1": {
-        'EHVCA': 'VA1.mp4',
-        'HVCA': 'VA2.mp4',
-        'MVCA': 'VA3.mp4',
-        'PCA': 'VA4.mp4',
-        'TLA': 'VA5.mp4',
-        'JB': 'VA6.mp4',
-        'ELPS': 'VA7.mp4',
-        'Oil Type': 'VA8.mp4',
-        'AMPACT': 'VA9.mp4'
+        "EHVCA": "VA1.mp4",
+        "HVCA": "VA2.mp4",
+        "MVCA": "VA3.mp4",
+        "PCA": "VA4.mp4",
+        "TLA": "VA5.mp4",
+        "JB-Junction Box": "VA6.mp4",
+        "Industrial Protection & Oil and Gas protection": "VA7.mp4",
+        "Oil Type": "VA8.mp4",
+        "AMPACT": "VA9.mp4"
     },
     "2": {
         'MVCA': 'VB1.mp4',
         'LVCA': 'VB2.mp4',
-        'OCP2': 'VB3.mp4',
-        'Indoor': 'VB12.mp4',
-        'DOV': 'VB4.mp4',
-        'Cable': 'VB6.mp4',
-        'Acc': 'VB7.mp4',
+        'OCP2 - Station Low class (SL)': 'VB3.mp4',
+        'DOV - Distribution High class (DH)': 'VB4.mp4',
+        'Indoor': 'VB5.mp4',
+        'Covered Conductor': 'VB6.mp4',
+        'MVCC Accessories': 'VB7.mp4',
         'AMPACT': 'VB8.mp4',
         'LVABC': 'VB9.mp4',
-        'Gloves': 'VB10.mp4',
-        'Mat': 'VB11.mp4'
+        'Electrical Insulating Gloves': 'VB10.mp4',
+        'Electrical Insulating Matting': 'VB11.mp4'
     },
     "3": {
-        'Connector': 'VC1.mp4',
-        'JB': 'VC2.mp4',
-        'Solar Trafo': 'VC3.mp4',
-        'MVCA': 'VC4.mp4',
-        'PCA': 'VC5.mp4',
-        'OCP': 'VC6.mp4'
+        "PV4-S Connectors": "VC1.mp4",
+        "JB-Junction Box": "VC2.mp4",
+        "Solar Transformers": "VC3.mp4",
+        "MVCA": "VC4.mp4",
+        "PCA-Station Medium-Class (SM)": "VC5.mp4",
+        "OCP2-Station Low Class (SL)": "VC6.mp4",
+        "DOV-Distribution High Class (DH)": "VC7.mp4"
     },
     "4": {
-        'Busbar': 'VD1.mp4',
-        'Gloves': 'VD2.mp4',
-        'Mat': 'VD3.mp4',
-        'Arcsuit': 'VD4.mp4',
-        'Industrial protection': 'VD5.mp4',
-        'Oil and Gas protection': 'VD6.mp4',
-        'Oil Type': 'VD7.mp4',
-        'JB': 'VD8.mp4',
-        'SS Enclosure': 'VD9.mp4',
-        'Customisation': 'VD10.mp4',
-        'Diff': 'VD11.mp4'
+        "EV Bus Bars": "VD1.mp4",
+        "Electrical Insulating Gloves": "VD2.mp4",
+        "Electrical Insulating Matting": "VD3.mp4",
+        "ARC Flash Protection": "VD4.mp4",
+        "Industrial Protection & Oil and Gas protection": "VD5.mp4",
+        "Oil Type": "VD6.mp4",
+        "JB-Junction Box": "VD7.mp4",
+        "Stainless Steel Enclosure": "VD8.mp4",
+        "CNC Machining": "VD9.mp4",
+        "Casting Process": "VD10.mp4",
+        "Sheet metal & Fabrication": "VD11.mp4",
+        "Diff": "VD12.mp4",
+        "Indoor PCA & DOV": "VD13.mp4"  
     },
     "5": {
-        'g1.6': 'VE1.mp4',
-        'Postpaid': 'VE2.mp4',
-        'prepaid': 'VE3.mp4',
-        'Building Not Doing': 'VE4.mp4',
-        'Energy Power Division-service (EPD-Service)': 'VE5.mp4',
-        'Gloves': 'VE6.mp4',
-        'AB Acc': 'VE7.mp4',
-        'MCS': 'VE8.mp4',
-        'ATD': 'VE9.mp4',
-        'Dropper': 'VE10.mp4',
-        'Insulator': 'VE11.mp4',
-        'Lugs': 'VE12.mp4',
-        'ties': 'VE13.mp4',
-        'Glands': 'VE14.mp4'
+        "G1.6 Gas Meter": "VE1.mp4",
+        "Smart Postpaid Gas Meter": "VE2.mp4",
+        "Smart Prepaid Gas Meter": "VE3.mp4",
+        "Industrial Protection & Oil and Gas protection": "VE4.mp4",
+        "Energy Power Division-service (EPD-Service)": "VE5.mp4",
+        "Electrical Insulating Gloves": "VE6.mp4",
+        "AB Acc": "VE7.mp4",
+        "MCS": "VE8.mp4",
+        "ATD": "VE9.mp4",
+        "Insulator": "VE10.mp4",
+        "Lugs": "VE11.mp4",
+        "Clamping": "VE12.mp4",
+        "Glands": "VE13.mp4"
     }
 };
 
@@ -341,7 +343,7 @@ io.on('connection', (socket) => {
         //initialising 
         await initializeModbusClient();
         //writting
-        await handleSequentialWrites( parseInt(buttonNumber));
+        await handleSequentialWrites(parseInt(buttonNumber));
         io.emit('move', { button: buttonNumber });
         console.log("🟢 Move emitted with button:", buttonNumber);
         if (isVideoPlaying) {
@@ -378,8 +380,8 @@ function getServerIPAddress() {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     // const ipAddress = getServerIPAddress();
-    // startModbusReadingTest();
-    startModbusReading();
+    startModbusReadingTest();
+    // startModbusReading();
 
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
