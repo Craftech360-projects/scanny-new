@@ -31,6 +31,9 @@ const TRIGGER_RANGES = [
 let lastDetectedIndex = null;
 let triggerStartTime = null;
 const TRIGGER_DURATION = 60000; // 1 minute in milliseconds
+let isVideoPlaying = false;
+let modbusClient;
+let isModbusConnected = false;
 
 
 const VIDEO_MAPPING = {
@@ -41,8 +44,7 @@ const VIDEO_MAPPING = {
     "4": "animation4.mp4",
     "5": "animation5.mp4"
 };
-let modbusClient;
-let isModbusConnected = false;
+
 
 // Set the view engine to EJS
 app.set('view engine', 'ejs');
@@ -231,10 +233,16 @@ async function startModbusReading() {
                         lastDetectedIndex = detectedIndex;
                     }
                     if (Date.now() - triggerStartTime >= TRIGGER_DURATION) {
+                        if (isVideoPlaying) {
+                            io.emit('hideEverythinginVideoScreen');
+                            console.log(chalk.red("🔴 Hiding all videos, showing background image with scrolling."));
+                            isVideoPlaying = false;
+                        }
                         io.emit('specialVideoChange', { videoFile: selectedVideo });
                         console.log(chalk.blue(`📢 Emitting 'specialVideoChange' for value: ${modbusValue} -> ${selectedVideo}`));
                         // Reset timer after emitting
                         triggerStartTime = null;
+                        isVideoPlaying = true;
                     }
                 } else {
                     // Reset if value goes out of range
@@ -290,10 +298,16 @@ async function startModbusReadingTest() {
                     lastDetectedIndex = detectedIndex;
                 }
                 if (Date.now() - triggerStartTime >= TRIGGER_DURATION) {
+                    if (isVideoPlaying) {
+                        io.emit('hideEverythinginVideoScreen');
+                        console.log(chalk.red("🔴 Hiding all videos, showing background image with scrolling."));
+                        isVideoPlaying = false;
+                    }
                     io.emit('specialVideoChange', { videoFile: selectedVideo });
                     console.log(chalk.blue(`📢 Emitting 'specialVideoChange' for value: ${modbusValue} -> ${selectedVideo}`));
                     // Reset timer after emitting
                     triggerStartTime = null;
+                    isVideoPlaying = true;
                 }
             } else {
                 // Reset if value goes out of range
@@ -303,7 +317,7 @@ async function startModbusReadingTest() {
         } catch (err) {
             console.error(chalk.red(`Error in dummy Modbus reading: ${err.message}`));
         }
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Read every second
+        await new Promise(resolve => setTimeout(resolve, 1000000)); // Read every second
     }
 }
 
@@ -330,7 +344,11 @@ io.on('connection', (socket) => {
         await handleSequentialWrites( parseInt(buttonNumber));
         io.emit('move', { button: buttonNumber });
         console.log("🟢 Move emitted with button:", buttonNumber);
-
+        if (isVideoPlaying) {
+            io.emit('hideEverythinginVideoScreen');
+            console.log("🔴 Video was playing, hiding all videos and showing background.");
+            isVideoPlaying = false;
+        }
 
         console.log("data ")
     });
@@ -361,7 +379,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     // const ipAddress = getServerIPAddress();
     // startModbusReadingTest();
-    startModbusReading()
+    startModbusReading();
 
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
