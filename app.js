@@ -325,9 +325,9 @@ io.on('connection', (socket) => {
 
 
         //initialising 
-        // await initializeModbusClient();
+        await initializeModbusClient();
         //writting
-        // await handleSequentialWrites( parseInt(buttonNumber));
+        await handleSequentialWrites( parseInt(buttonNumber));
         io.emit('move', { button: buttonNumber });
         console.log("🟢 Move emitted with button:", buttonNumber);
 
