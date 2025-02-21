@@ -165,12 +165,12 @@
 
     <div class="container">
         <div class="header">
-            <h1>Screen 1 - Generation and Transmission</h1>
+            <h1>Building and Infrastructure</h1>
         </div>
 
         <div>
             <ul class="menu-list">
-                <% const menuItems = ['Cable Accessories', 'Surge Arrestor', 'Enclosures', 'ELPS', 'Transformer', 'C&F']; %>
+                <% const menuItems = ['Gas Meters', 'ELPS', 'Services', 'Safety', 'C&F', 'Railway','CMS']; %>
                 <% menuItems.forEach((item, index) => { %>
                     <li class="menu-item" data-subcontainer="subcontainer<%= index + 1 %>">
                         <a href="#" class="menu-link">
@@ -185,12 +185,13 @@
     </div>
 
     <% const subcontainers = [
-        ['EHVCA', 'HVCA', 'MVCA'], // Subcontainer1 (Cable Accessories)
-        ['PCA', 'TLA'], // Subcontainer2 (Surge Arrestor)
-        ['JB'], // Subcontainer3 (Enclosures)
-        ['ELPS'], // Subcontainer4 (ELPS)
-        ['Oil Type'], // Subcontainer5 (Transformer)
-        ['AMPACT'] // Subcontainer6 (C&F)
+        ['g1.6', 'Postpaid', 'prepaid'], 
+        ['Building Not Doing'], 
+        ['Energy Power Division-service (EPD-Service)'], 
+        ['Gloves'], 
+        ['AB Acc'], 
+        ['MCS','ATD','Dropper','Insulator'],
+        ['Lugs','ties','Glands']
     ]; %>
 
     <% subcontainers.forEach((subItems, index) => { %>

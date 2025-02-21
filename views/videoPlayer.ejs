@@ -129,12 +129,12 @@
 
 function scrollBackground(button) {
     const positionMap = {
-        'btn6':0,
-        'btn1': 1080,
-        'btn2': 2160,
-        'btn3': 3240,
-        'btn4': 4320,
-        'btn5': 5400
+        '6':0,
+        '1': 1080,
+        '2': 2160,
+        '3': 3240,
+        '4': 4320,
+        '5': 5400
     };
 
     const targetPosition = positionMap[button] || 0;
@@ -191,6 +191,7 @@ function scrollBackground(button) {
 
             // ✅ Use the button data to scroll
             scrollBackground(data.button);
+            console.log("scroll ot executed ")
         });
 
 
