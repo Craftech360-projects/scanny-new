@@ -341,9 +341,9 @@ io.on('connection', (socket) => {
 
 
         //initialising 
-        // await initializeModbusClient();
+        await initializeModbusClient();
         //writting
-        // await handleSequentialWrites(parseInt(buttonNumber));
+        await handleSequentialWrites(parseInt(buttonNumber));
         io.emit('move', { button: buttonNumber });
         console.log("🟢 Move emitted with button:", buttonNumber);
         if (isVideoPlaying) {
@@ -357,7 +357,7 @@ io.on('connection', (socket) => {
 
 });
 
-// initializeModbusClient();
+initializeModbusClient();
 
 
 // Get server IP address
@@ -380,8 +380,8 @@ function getServerIPAddress() {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     // const ipAddress = getServerIPAddress();
-    startModbusReadingTest();
-    // startModbusReading();
+    // startModbusReadingTest();
+    startModbusReading();
 
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
