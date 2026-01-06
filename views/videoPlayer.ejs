@@ -109,16 +109,23 @@
 
         const socket = io();
 
-        // Position mapping for each button (0-5)
-        // Image width is 6480px, divided into 6 sections (0-5)
-        const POSITION_MAP = {
-            0: 0,      // Home position
-            1: 1080,   // Position 1
-            2: 2160,   // Position 2
-            3: 3240,   // Position 3
-            4: 4320,   // Position 4
-            5: 5400    // Position 5
-        };
+        // Position mapping loaded from config.json via server
+        // Maps OSC position values to pixel positions for image scrolling
+        const POSITION_MAP = <%- JSON.stringify(positionMap) %>;
+
+        // Button number to final pixel position mapping
+        // Derived from POSITION_MAP - maps button numbers (0-5) to their target positions
+        const BUTTON_TO_POSITION = (function() {
+            const keys = Object.keys(POSITION_MAP).map(parseFloat).sort((a, b) => a - b);
+            const map = {};
+            keys.forEach((key, index) => {
+                map[index] = POSITION_MAP[key];
+            });
+            return map;
+        })();
+
+        console.log('📍 POSITION_MAP:', POSITION_MAP);
+        console.log('📍 BUTTON_TO_POSITION:', BUTTON_TO_POSITION);
 
         let currentTarget = 0;
         let startPosition = 0;
@@ -146,8 +153,27 @@
         socket.on('movement', (data) => {
             const positionIndex = data.position;
             
-            // Calculate pixel position directly (1080px per unit)
-            const newScrollLeft = positionIndex * 1080;
+            // Calculate pixel position using interpolation based on POSITION_MAP
+            let newScrollLeft = 0;
+            const keys = Object.keys(POSITION_MAP).map(parseFloat).sort((a, b) => a - b);
+            
+            if (positionIndex <= keys[0]) {
+                newScrollLeft = POSITION_MAP[keys[0]];
+            } else if (positionIndex >= keys[keys.length - 1]) {
+                newScrollLeft = POSITION_MAP[keys[keys.length - 1]];
+            } else {
+                for (let i = 0; i < keys.length - 1; i++) {
+                    const start = keys[i];
+                    const end = keys[i+1];
+                    if (positionIndex >= start && positionIndex <= end) {
+                        const startPos = POSITION_MAP[start];
+                        const endPos = POSITION_MAP[end];
+                        const t = (positionIndex - start) / (end - start);
+                        newScrollLeft = startPos + t * (endPos - startPos);
+                        break;
+                    }
+                }
+            }
             
             imageContainer.scrollLeft = newScrollLeft;
             console.log(`🔄 Moving to position index: ${positionIndex.toFixed(3)} (${newScrollLeft.toFixed(0)}px)`);
@@ -156,15 +182,18 @@
         // Handle reached destination - play video
         socket.on('reached', (data) => {
             console.log(`📍 Reached position ${data.button}`);
-            
-            // Ensure we are physically at the target position
-            const targetPos = POSITION_MAP[data.button];
+
+            // Ensure we are physically at the target position using button mapping
+            const targetPos = BUTTON_TO_POSITION[data.button];
             if (targetPos !== undefined) {
                 imageContainer.scrollLeft = targetPos;
                 currentTarget = data.button;
-                startPosition = targetPos; // Reset start position for next move
+                startPosition = targetPos;
+                console.log(`📍 Set final position to ${targetPos}px for button ${data.button}`);
+            } else {
+                console.warn(`⚠️ No position mapping for button ${data.button}`);
             }
-            
+
             socket.emit('scrollComplete');
         });
 

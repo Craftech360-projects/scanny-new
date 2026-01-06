@@ -9,6 +9,7 @@ const io = socketIo(server); // ✅ Use Socket.IO
 const os = require('os');
 const chalk = require('chalk');
 const osc = require("osc");
+const fs = require('fs'); // Added fs module
 
 // Middleware
 app.use(bodyParser.json());
@@ -16,9 +17,28 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // OSC Configuration
 const OSC_IN_IP = "0.0.0.0";
-const OSC_IN_PORT = 9001;
-const OSC_OUT_IP = "192.168.1.100";
-const OSC_OUT_PORT = 9002;
+const OSC_IN_PORT = 8000;
+const OSC_OUT_IP = "192.168.1.208";
+const OSC_OUT_PORT = 9000;
+
+// Load config.json
+let POSITION_TO_IMAGE_MAP = {};
+let POSITION_MAP = {};
+try {
+    const configPath = path.join(__dirname, 'config.json');
+    const configData = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configData);
+    POSITION_TO_IMAGE_MAP = config.position_to_image_map || {};
+    POSITION_MAP = config.position_map || {};
+    console.log(chalk.green('✅ Loaded configuration from config.json'));
+} catch (error) {
+    console.error(chalk.red(`❌ Error loading config.json: ${error.message}`));
+    console.log(chalk.yellow('⚠️ Using default empty configurations.'));
+}
+
+
+
+
 // Video mapping for each button position
 const VIDEO_MAPPING = {
     "0": "default.mp4",
@@ -46,7 +66,7 @@ app.get('/', (req, res) => {
 
 // ✅ Video Player Page
 app.get('/videoPlayer', (req, res) => {
-    res.render('videoPlayer');
+    res.render('videoPlayer', { positionMap: POSITION_MAP });
 });
 
 
@@ -71,13 +91,16 @@ oscPort.on("ready", () => {
 oscPort.on("message", (oscMsg) => {
     console.log(chalk.cyan(`📩 OSC Received: ${oscMsg.address} = ${JSON.stringify(oscMsg.args)}`));
 
-    // Handle movement data: /movement [buttonNumber, progress]
-    // progress is 0.0 to 1.0 indicating how far along the movement is
+    // Handle movement data: /movement [buttonNumber, positionIndex]
+    // The second value is the absolute position index (e.g., 1.5 is halfway between 1 and 2)
     if (oscMsg.address === "/movement") {
-        const buttonNumber = oscMsg.args[0];
-        const progress = oscMsg.args[1];
-        io.emit('movement', { button: buttonNumber, progress: progress });
-        console.log(chalk.yellow(`🔄 Movement: Button ${buttonNumber}, Progress ${progress}`));
+        const receivedPositionIndex = oscMsg.args[1];
+        // Use the loaded map to transform the positionIndex
+        const transformedPosition = POSITION_TO_IMAGE_MAP[String(receivedPositionIndex)];
+        const positionToEmit = transformedPosition !== undefined ? transformedPosition : receivedPositionIndex;
+
+        io.emit('movement', { position: positionToEmit });
+        console.log(chalk.yellow(`🔄 Movement: Original Position ${receivedPositionIndex}, Emitting Transformed Position ${positionToEmit}`));
     }
 
     // Handle reached destination: /reached [buttonNumber]
