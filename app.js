@@ -15,23 +15,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // OSC Configuration
-const OSC_RECEIVE_PORT = 8000;    // Port to RECEIVE OSC messages from C program
-const OSC_REMOTE_IP = "127.0.0.1"; // IP of C program (localhost if same machine)
-const OSC_SEND_PORT = 9000;       // Port to SEND OSC messages to C program
-const TRIGGER_RANGES = [
-    { min: 30, max: 60, index: 0 },
-    { min: 80, max: 120, index: 1 },
-    { min: 130, max: 170, index: 2 },
-    { min: 180, max: 220, index: 3 },
-    { min: 230, max: 270, index: 4 },
-    { min: 280, max: 300, index: 5 }
-];
-let lastDetectedIndex = null;
-let triggerStartTime = null;
-const TRIGGER_DURATION = 10000; // 10 seconds in milliseconds
-let isVideoPlaying = false;
-
-
+const OSC_IN_IP = "0.0.0.0";
+const OSC_IN_PORT = 9001;
+const OSC_OUT_IP = "192.168.1.100";
+const OSC_OUT_PORT = 9002;
+// Video mapping for each button position
 const VIDEO_MAPPING = {
     "0": "default.mp4",
     "1": "animation1.mp4",
@@ -40,6 +28,8 @@ const VIDEO_MAPPING = {
     "4": "animation4.mp4",
     "5": "animation5.mp4"
 };
+
+let isVideoPlaying = false;
 
 
 // Set the view engine to EJS
@@ -65,40 +55,53 @@ app.get('/videoPlayer', (req, res) => {
 
 // Create OSC UDP Port (handles both sending and receiving)
 const oscPort = new osc.UDPPort({
-    localAddress: "0.0.0.0",
-    localPort: OSC_RECEIVE_PORT,
-    remoteAddress: OSC_REMOTE_IP,
-    remotePort: OSC_SEND_PORT
+    localAddress: OSC_IN_IP,
+    localPort: OSC_IN_PORT,
+    remoteAddress: OSC_OUT_IP,
+    remotePort: OSC_OUT_PORT
 });
 
 // OSC Port ready
 oscPort.on("ready", () => {
-    console.log(chalk.green(`✅ OSC receiving on port ${OSC_RECEIVE_PORT}`));
-    console.log(chalk.green(`✅ OSC sending to ${OSC_REMOTE_IP}:${OSC_SEND_PORT}`));
+    console.log(chalk.green(`✅ OSC receiving on ${OSC_IN_IP}:${OSC_IN_PORT}`));
+    console.log(chalk.green(`✅ OSC sending to ${OSC_OUT_IP}:${OSC_OUT_PORT}`));
 });
 
 // Handle incoming OSC messages from C program
 oscPort.on("message", (oscMsg) => {
-    console.log(chalk.cyan(`📩 OSC Received: ${oscMsg.address} = ${oscMsg.args}`));
+    console.log(chalk.cyan(`📩 OSC Received: ${oscMsg.address} = ${JSON.stringify(oscMsg.args)}`));
 
-    // Handle position data from C program
-    if (oscMsg.address === "/position") {
-        const positionValue = oscMsg.args[0];
-        handleOSCPosition(positionValue);
+    // Handle movement data: /movement [buttonNumber, progress]
+    // progress is 0.0 to 1.0 indicating how far along the movement is
+    if (oscMsg.address === "/movement") {
+        const buttonNumber = oscMsg.args[0];
+        const progress = oscMsg.args[1];
+        io.emit('movement', { button: buttonNumber, progress: progress });
+        console.log(chalk.yellow(`🔄 Movement: Button ${buttonNumber}, Progress ${progress}`));
     }
 
-    // Handle trigger commands from C program
-    if (oscMsg.address === "/trigger") {
-        const triggerIndex = oscMsg.args[0];
-        const videoFile = VIDEO_MAPPING[String(triggerIndex)] || "default.mp4";
-        io.emit('specialVideoChange', { videoFile });
-        console.log(chalk.blue(`📢 OSC Trigger: Playing ${videoFile}`));
+    // Handle reached destination: /reached [buttonNumber]
+    // Triggered when movement completes - play the video
+    if (oscMsg.address === "/reached") {
+        const buttonNumber = oscMsg.args[0];
+        const videoFile = VIDEO_MAPPING[String(buttonNumber)] || "default.mp4";
+
+        io.emit('reached', { button: buttonNumber });
+        console.log(chalk.green(`📍 Reached position ${buttonNumber}`));
+
+        // Play video if not home position (0)
+        if (buttonNumber !== 0 && videoFile !== "default.mp4") {
+            io.emit('playVideo', { videoFile: videoFile, button: buttonNumber });
+            console.log(chalk.blue(`🎬 Playing: ${videoFile}`));
+            isVideoPlaying = true;
+        }
     }
 
     // Handle hide command from C program
     if (oscMsg.address === "/hide") {
         io.emit('hideEverythinginVideoScreen');
         console.log(chalk.red("🔴 OSC: Hiding all videos"));
+        isVideoPlaying = false;
     }
 });
 
@@ -107,49 +110,17 @@ oscPort.on("error", (err) => {
     console.error(chalk.red(`OSC Error: ${err.message}`));
 });
 
-// Function to handle position values received via OSC
-function handleOSCPosition(positionValue) {
-    console.log(chalk.yellow(`OSC Position Value: ${positionValue}`));
-
-    let selectedVideo = null;
-    let detectedIndex = null;
-
-    for (const range of TRIGGER_RANGES) {
-        if (positionValue >= range.min && positionValue <= range.max) {
-            detectedIndex = range.index;
-            selectedVideo = VIDEO_MAPPING[String(range.index)];
-            break;
-        }
-    }
-
-    if (detectedIndex !== null) {
-        if (lastDetectedIndex !== detectedIndex) {
-            triggerStartTime = Date.now();
-            lastDetectedIndex = detectedIndex;
-        }
-        if (Date.now() - triggerStartTime >= TRIGGER_DURATION) {
-            if (isVideoPlaying) {
-                io.emit('hideEverythinginVideoScreen');
-                isVideoPlaying = false;
-            }
-            io.emit('specialVideoChange', { videoFile: selectedVideo });
-            console.log(chalk.blue(`📢 OSC: Playing ${selectedVideo}`));
-            triggerStartTime = null;
-            isVideoPlaying = true;
-        }
-    } else {
-        triggerStartTime = null;
-        lastDetectedIndex = null;
-    }
-}
-
 // Function to send OSC message to C program
 function sendOSCMessage(address, value) {
-    oscPort.send({
-        address: address,
-        args: [{ type: "i", value: value }]
-    });
-    console.log(chalk.magenta(`📤 OSC Sent: ${address} = ${value}`));
+    try {
+        oscPort.send({
+            address: address,
+            args: [{ type: "i", value: value }]
+        });
+        console.log(chalk.magenta(`📤 OSC Sent: ${address} = ${value} to ${OSC_OUT_IP}:${OSC_OUT_PORT}`));
+    } catch (err) {
+        console.error(chalk.red(`❌ OSC Send Error: ${err.message}`));
+    }
 }
 
 // Open the OSC port
@@ -170,20 +141,16 @@ io.on('connection', (socket) => {
         console.log('Received from client:', data.message);
 
         const buttonNumber = data.message.replace(/\D/g, "");
+        // Convert btn6 to 0 (home), otherwise use the number
+        const oscValue = buttonNumber === "6" ? 0 : parseInt(buttonNumber);
 
         // Send button click to C program via OSC
-        sendOSCMessage("/button", parseInt(buttonNumber));
+        sendOSCMessage("/start", oscValue);
+        console.log(`${oscValue}`);
 
-        io.emit('move', { button: buttonNumber });
-        console.log("🟢 Move emitted with button:", buttonNumber);
-
+        // Stop any playing video
+        io.emit('stopVideo');
         isVideoPlaying = false;
-    });
-
-    // Relay scroll complete to all clients (to re-enable buttons)
-    socket.on('scrollComplete', () => {
-        console.log('📍 Scroll complete received');
-        io.emit('scrollComplete');
     });
 
     // Relay video ended to all clients (to re-enable buttons)

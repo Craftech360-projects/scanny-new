@@ -107,10 +107,24 @@
         const defaultVideo = document.getElementById('defaultVideo');
         const imageContainer = document.getElementById('image-container');
 
-        const socket = io(); // Connect to the server
+        const socket = io();
+
+        // Position mapping for each button (0-5)
+        // Image width is 6480px, divided into 6 sections (0-5)
+        const POSITION_MAP = {
+            0: 0,      // Home position
+            1: 1080,   // Position 1
+            2: 2160,   // Position 2
+            3: 3240,   // Position 3
+            4: 4320,   // Position 4
+            5: 5400    // Position 5
+        };
+
+        let currentTarget = 0;
+        let startPosition = 0;
 
         function pauseAndHideAll() {
-            console.log("⏸️ Pausing all videos and hiding them.");
+            console.log("⏸️ Pausing all videos");
             defaultVideo.pause();
             defaultVideo.style.display = 'none';
             videoPlayer.pause();
@@ -122,141 +136,64 @@
             videoSource.src = `/videos/${videoFile}`;
             videoPlayer.style.display = 'block';
             videoPlayer.load();
-            videoPlayer.currentTime = 0; // Always start from beginning
+            videoPlayer.currentTime = 0;
             videoPlayer.play();
+            console.log(`🎬 Playing: ${videoFile}`);
         }
-        let scrollAnimationFrame;
-        let isScrolling = false;
 
-        // Video mapping for each button
-        const VIDEO_MAPPING = {
-            '1': 'animation1.mp4',
-            '2': 'animation2.mp4',
-            '3': 'animation3.mp4',
-            '4': 'animation4.mp4',
-            '5': 'animation5.mp4',
-            '6': 'default.mp4'
-        };
+        // Handle movement data from OSC via server
+        // /movement [buttonNumber, progress] where progress is 0.0 to 1.0
+        socket.on('movement', (data) => {
+            const button = data.button;
+            const progress = data.progress;
 
-        function scrollBackground(button) {
-            const positionMap = {
-                '6': 0,
-                '1': 1080,
-                '2': 2160,
-                '3': 3240,
-                '4': 4320,
-                '5': 5400
-            };
+            // If new target, store the start position
+            if (currentTarget !== button) {
+                startPosition = imageContainer.scrollLeft;
+                currentTarget = button;
+                // Stop any playing video when movement starts
+                pauseAndHideAll();
+            }
 
-            // Stop any playing video immediately when new scroll starts
-            pauseAndHideAll();
-
-            const targetPosition = positionMap[button] || 0;
-            const startPosition = imageContainer.scrollLeft;
+            const targetPosition = POSITION_MAP[button] || 0;
             const distance = targetPosition - startPosition;
-            const baseDuration = 8000; // Base duration for the animation
-            const stepDistance = 1080; // Distance for each step
-            const duration = baseDuration * (Math.abs(distance) / stepDistance); // Adjust duration based on distance
 
-            let startTime = null;
-            isScrolling = true;
+            // Move image based on progress (0.0 to 1.0)
+            imageContainer.scrollLeft = startPosition + (distance * progress);
+            console.log(`🔄 Moving to ${button}: ${(progress * 100).toFixed(1)}%`);
+        });
 
-            function animateScroll(timestamp) {
-                if (!startTime) startTime = timestamp;
-                const progress = Math.min((timestamp - startTime) / duration, 1);
-                const easedProgress = easeOutQuad(progress);
+        // Handle reached destination - play video
+        socket.on('reached', (data) => {
+            console.log(`📍 Reached position ${data.button}`);
+            socket.emit('scrollComplete');
+        });
 
-                imageContainer.scrollLeft = startPosition + distance * easedProgress;
+        // Handle play video command from server
+        socket.on('playVideo', (data) => {
+            console.log(`🎬 Play video command: ${data.videoFile}`);
+            playNewVideo(data.videoFile);
+        });
 
-                if (progress < 1) {
-                    scrollAnimationFrame = requestAnimationFrame(animateScroll);
-                } else {
-                    // Animation complete
-                    isScrolling = false;
-                    socket.emit('scrollComplete');
-                    console.log('📍 Scroll complete, notified server');
-
-                    // Play the video for this button
-                    const videoFile = VIDEO_MAPPING[button];
-                    if (videoFile && videoFile !== 'default.mp4') {
-                        console.log(`🎬 Playing: ${videoFile}`);
-                        playNewVideo(videoFile);
-                    }
-                }
-            }
-
-            function easeOutQuad(t) {
-                return t * (2 - t); // Easing function for smooth deceleration
-            }
-
-            // Cancel any previous animation before starting a new one
-            if (scrollAnimationFrame) {
-                cancelAnimationFrame(scrollAnimationFrame);
-            }
-
-            scrollAnimationFrame = requestAnimationFrame(animateScroll);
-        }
-
-        function playDefaultVideo() {
+        // Handle stop video command
+        socket.on('stopVideo', () => {
+            console.log('⏹️ Stop video command received');
             pauseAndHideAll();
-            console.log("▶ Playing default video");
-            defaultVideo.style.display = 'block';
-            defaultVideo.play();
-        }
-
-        socket.on('videoChange', (data) => {
-            console.log('🎬 Normal video change received:', data);
-            if (!data.videoFile || data.videoFile === "default.mp4") {
-                console.warn(" Invalid video file received!");
-                return;
-            }
-            playNewVideo(data.videoFile);
         });
 
-        socket.on('move', (data) => {
-            console.log('🚀 Moving triggered with button:', data.button);
-
-            // ✅ Use the button data to scroll
-            scrollBackground(data.button);
-            console.log("scroll ot executed ")
-        });
-
-
-        socket.on('specialVideoChange', (data) => {
-            console.log('🎬 Special video triggered:', data.videoFile);
-
-            if (!data.videoFile) {
-                console.warn("⚠️ Invalid special video file received!");
-                return;
-            }
-
-            // ✅ Play the video (No scrolling here)
-            playNewVideo(data.videoFile);
-            console.log("playing this video ", data.videoFile)
-        });
-
-
-
-
+        // Handle hide everything
         socket.on('hideEverythinginVideoScreen', () => {
-            console.log(' Received hideEverything signal! Hiding all videos and showing background image.');
-
-            // Pause and hide both videos
-            videoPlayer.pause();
-            videoPlayer.style.display = 'none';
-
-            defaultVideo.pause();
-            defaultVideo.style.display = 'none';
-
-            // Show only the background image
+            console.log('🔴 Hiding all videos, showing background');
+            pauseAndHideAll();
             document.getElementById('image-container').style.display = 'block';
         });
 
+        // When video ends
         videoPlayer.addEventListener('ended', () => {
-            console.log('🎬 Main video ended');
+            console.log('🎬 Video ended');
             videoPlayer.pause();
             videoPlayer.style.display = 'none';
-            videoPlayer.currentTime = 0; // Reset to beginning for next play
+            videoPlayer.currentTime = 0;
             socket.emit('videoEnded');
         });
     </script>

@@ -119,23 +119,30 @@
             const activeButton = document.getElementById(id);
             activeButton.style.backgroundImage = `url('${activeButton.dataset.activeImage}')`;
 
-            // Disable buttons while scrolling
+            // Disable buttons while moving
             disableAllButtons();
 
-            // Send button click to server (triggers image scroll via OSC)
+            // Send button click to server
+            // btn1-5 sends 1-5, btn6 sends 0 (home)
             socket.emit('buttonClick', { message: id });
             console.log(`Button clicked: ${id}`);
         }
 
-        // Re-enable buttons when scroll is complete
+        // Re-enable buttons when reached destination (scroll complete)
         socket.on('scrollComplete', () => {
-            console.log('Scroll complete, enabling buttons');
+            console.log('Reached destination, enabling buttons');
             enableAllButtons();
         });
 
         // Re-enable buttons when video ends
         socket.on('videoEnded', () => {
             console.log('Video ended, enabling buttons');
+            enableAllButtons();
+        });
+
+        // Also enable buttons when reached event comes
+        socket.on('reached', () => {
+            console.log('Reached event, enabling buttons');
             enableAllButtons();
         });
     </script>
