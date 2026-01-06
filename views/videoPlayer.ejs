@@ -122,9 +122,21 @@
             videoSource.src = `/videos/${videoFile}`;
             videoPlayer.style.display = 'block';
             videoPlayer.load();
+            videoPlayer.currentTime = 0; // Always start from beginning
             videoPlayer.play();
         }
         let scrollAnimationFrame;
+        let isScrolling = false;
+
+        // Video mapping for each button
+        const VIDEO_MAPPING = {
+            '1': 'animation1.mp4',
+            '2': 'animation2.mp4',
+            '3': 'animation3.mp4',
+            '4': 'animation4.mp4',
+            '5': 'animation5.mp4',
+            '6': 'default.mp4'
+        };
 
         function scrollBackground(button) {
             const positionMap = {
@@ -136,6 +148,9 @@
                 '5': 5400
             };
 
+            // Stop any playing video immediately when new scroll starts
+            pauseAndHideAll();
+
             const targetPosition = positionMap[button] || 0;
             const startPosition = imageContainer.scrollLeft;
             const distance = targetPosition - startPosition;
@@ -144,6 +159,7 @@
             const duration = baseDuration * (Math.abs(distance) / stepDistance); // Adjust duration based on distance
 
             let startTime = null;
+            isScrolling = true;
 
             function animateScroll(timestamp) {
                 if (!startTime) startTime = timestamp;
@@ -154,6 +170,18 @@
 
                 if (progress < 1) {
                     scrollAnimationFrame = requestAnimationFrame(animateScroll);
+                } else {
+                    // Animation complete
+                    isScrolling = false;
+                    socket.emit('scrollComplete');
+                    console.log('📍 Scroll complete, notified server');
+
+                    // Play the video for this button
+                    const videoFile = VIDEO_MAPPING[button];
+                    if (videoFile && videoFile !== 'default.mp4') {
+                        console.log(`🎬 Playing: ${videoFile}`);
+                        playNewVideo(videoFile);
+                    }
                 }
             }
 
@@ -225,9 +253,11 @@
         });
 
         videoPlayer.addEventListener('ended', () => {
-            console.log('🎬 Main video ended, pausing.');
-            videoPlayer.pause(); // Stop at last frame
+            console.log('🎬 Main video ended');
+            videoPlayer.pause();
             videoPlayer.style.display = 'none';
+            videoPlayer.currentTime = 0; // Reset to beginning for next play
+            socket.emit('videoEnded');
         });
     </script>
 </body>

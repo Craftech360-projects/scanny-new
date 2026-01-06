@@ -8,18 +8,16 @@ const server = http.createServer(app);
 const io = socketIo(server); // ✅ Use Socket.IO
 const os = require('os');
 const chalk = require('chalk');
-const ModbusRTU = require("modbus-serial");
+const osc = require("osc");
 
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-const MODBUS_SERVER_IP = "192.168.1.5"; // Replace with your Modbus server IP
-const MODBUS_SERVER_PORT = 502;          // Default Modbus TCP port
-const MODBUS_REGISTER_ADDRESS_1 = 40024;   // First Modbus register address to write to
-const MODBUS_REGISTER_ADDRESS_2 = 40025;   // Second Modbus register address to write to
-const MODBUS_REGISTER_ADDRESS_3 = 40026;   // Second Modbus register address to write to
+// OSC Configuration
+const OSC_RECEIVE_PORT = 8000;    // Port to RECEIVE OSC messages from C program
+const OSC_REMOTE_IP = "127.0.0.1"; // IP of C program (localhost if same machine)
+const OSC_SEND_PORT = 9000;       // Port to SEND OSC messages to C program
 const TRIGGER_RANGES = [
     { min: 30, max: 60, index: 0 },
     { min: 80, max: 120, index: 1 },
@@ -30,10 +28,8 @@ const TRIGGER_RANGES = [
 ];
 let lastDetectedIndex = null;
 let triggerStartTime = null;
-const TRIGGER_DURATION = 10000; // 1 minute in milliseconds
+const TRIGGER_DURATION = 10000; // 10 seconds in milliseconds
 let isVideoPlaying = false;
-let modbusClient;
-let isModbusConnected = false;
 
 
 const VIDEO_MAPPING = {
@@ -53,275 +49,113 @@ app.set('views', path.join(__dirname, 'views'));
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-let lastClickedItem = ''; // ✅ Store last clicked item
-
-const videoMappings = {
-    "1": {
-        "EHVCA": "VA1.mp4",
-        "HVCA": "VA2.mp4",
-        "MVCA": "VA3.mp4",
-        "PCA": "VA4.mp4",
-        "TLA": "VA5.mp4",
-        "JB-Junction Box": "VA6.mp4",
-        "Industrial Protection & Oil and Gas protection": "VA7.mp4",
-        "Oil Type": "VA8.mp4",
-        "AMPACT": "VA9.mp4"
-    },
-    "2": {
-        'MVCA': 'VB1.mp4',
-        'LVCA': 'VB2.mp4',
-        'OCP2 - Station Low class (SL)': 'VB3.mp4',
-        'DOV - Distribution High class (DH)': 'VB4.mp4',
-        'Indoor': 'VB5.mp4',
-        'Covered Conductor': 'VB6.mp4',
-        'MVCC Accessories': 'VB7.mp4',
-        'AMPACT': 'VB8.mp4',
-        'LVABC': 'VB9.mp4',
-        'Electrical Insulating Gloves': 'VB10.mp4',
-        'Electrical Insulating Matting': 'VB11.mp4'
-    },
-    "3": {
-        "PV4-S Connectors": "VC1.mp4",
-        "JB-Junction Box": "VC2.mp4",
-        "Solar Transformers": "VC3.mp4",
-        "MVCA": "VC4.mp4",
-        "PCA-Station Medium-Class (SM)": "VC5.mp4",
-        "OCP2-Station Low Class (SL)": "VC6.mp4",
-        "DOV-Distribution High Class (DH)": "VC7.mp4"
-    },
-    "4": {
-        "EV Bus Bars": "VD1.mp4",
-        "Electrical Insulating Gloves": "VD2.mp4",
-        "Electrical Insulating Matting": "VD3.mp4",
-        "ARC Flash Protection": "VD4.mp4",
-        "Industrial Protection & Oil and Gas protection": "VD5.mp4",
-        "Oil Type": "VD6.mp4",
-        "JB-Junction Box": "VD7.mp4",
-        "Stainless Steel Enclosure": "VD8.mp4",
-        "CNC Machining": "VD9.mp4",
-        "Casting Process": "VD10.mp4",
-        "Sheet metal & Fabrication": "VD11.mp4",
-        "Diff": "VD12.mp4",
-        "Indoor PCA & DOV": "VD13.mp4"  
-    },
-    "5": {
-        "G1.6 Gas Meter": "VE1.mp4",
-        "Smart Postpaid Gas Meter": "VE2.mp4",
-        "Smart Prepaid Gas Meter": "VE3.mp4",
-        "Industrial Protection & Oil and Gas protection": "VE4.mp4",
-        "Energy Power Division-service (EPD-Service)": "VE5.mp4",
-        "Electrical Insulating Gloves": "VE6.mp4",
-        "AB Acc": "VE7.mp4",
-        "MCS": "VE8.mp4",
-        "ATD": "VE9.mp4",
-        "Insulator": "VE10.mp4",
-        "Lugs": "VE11.mp4",
-        "Clamping": "VE12.mp4",
-        "Glands": "VE13.mp4"
-    }
-};
-
-
-// ✅ Function to get video file based on screen and clicked item
-function getVideoFile(screenId, videoName) {
-    videoName = videoName.trim().replace(/\s+›$/, ''); // ✅ Trim whitespace and remove special symbols
-    console.log(`📌 Fetching video for Screen ${screenId}, Cleaned Item: "${videoName}"`);
-
-    return videoMappings[screenId]?.[videoName] || 'default.mp4';
-}
-
 // ✅ Main Page
 app.get('/', (req, res) => {
     res.render('mainscreen');
 });
 
-// ✅ Screens 1-5
-app.get('/screen:id', (req, res) => {
-    res.render(`screen${req.params.id}`);
-});
-
-// ✅ Single Video Player Page (No ID Change)
+// ✅ Video Player Page
 app.get('/videoPlayer', (req, res) => {
-    res.render('videoPlayer', { videoName: lastClickedItem, videoFile: 'default.mp4' });
+    res.render('videoPlayer');
 });
 
-// ✅ Handle button click tracking for different screens
-app.post('/track:id', (req, res) => {
-    const screenId = req.params.id;
-    let { item } = req.body;
 
-    item = item.trim().replace(/\s+›$/, ''); // ✅ Ensure cleaned item
-    console.log(`📩 POST /track${screenId} - Cleaned Item: "${item}"`);
 
-    if (item) {
-        lastClickedItem = item;
-        const videoFile = getVideoFile(screenId, item);
+// ===================== OSC Setup =====================
 
-        console.log(`📢 Emitting 'videoChange' with video: ${videoFile} for screen ${screenId}`);
-        //emit after the tv reaches to that respective position 
-        // ✅ Emit event to update `videoPlayer.ejs`
-        io.emit(`videoChange`, { videoFile, videoName: item });
+// Create OSC UDP Port (handles both sending and receiving)
+const oscPort = new osc.UDPPort({
+    localAddress: "0.0.0.0",
+    localPort: OSC_RECEIVE_PORT,
+    remoteAddress: OSC_REMOTE_IP,
+    remotePort: OSC_SEND_PORT
+});
 
-        res.status(200).json({ message: `Signal received for: ${item} on screen ${screenId}` });
+// OSC Port ready
+oscPort.on("ready", () => {
+    console.log(chalk.green(`✅ OSC receiving on port ${OSC_RECEIVE_PORT}`));
+    console.log(chalk.green(`✅ OSC sending to ${OSC_REMOTE_IP}:${OSC_SEND_PORT}`));
+});
+
+// Handle incoming OSC messages from C program
+oscPort.on("message", (oscMsg) => {
+    console.log(chalk.cyan(`📩 OSC Received: ${oscMsg.address} = ${oscMsg.args}`));
+
+    // Handle position data from C program
+    if (oscMsg.address === "/position") {
+        const positionValue = oscMsg.args[0];
+        handleOSCPosition(positionValue);
+    }
+
+    // Handle trigger commands from C program
+    if (oscMsg.address === "/trigger") {
+        const triggerIndex = oscMsg.args[0];
+        const videoFile = VIDEO_MAPPING[String(triggerIndex)] || "default.mp4";
+        io.emit('specialVideoChange', { videoFile });
+        console.log(chalk.blue(`📢 OSC Trigger: Playing ${videoFile}`));
+    }
+
+    // Handle hide command from C program
+    if (oscMsg.address === "/hide") {
+        io.emit('hideEverythinginVideoScreen');
+        console.log(chalk.red("🔴 OSC: Hiding all videos"));
+    }
+});
+
+// Handle OSC errors
+oscPort.on("error", (err) => {
+    console.error(chalk.red(`OSC Error: ${err.message}`));
+});
+
+// Function to handle position values received via OSC
+function handleOSCPosition(positionValue) {
+    console.log(chalk.yellow(`OSC Position Value: ${positionValue}`));
+
+    let selectedVideo = null;
+    let detectedIndex = null;
+
+    for (const range of TRIGGER_RANGES) {
+        if (positionValue >= range.min && positionValue <= range.max) {
+            detectedIndex = range.index;
+            selectedVideo = VIDEO_MAPPING[String(range.index)];
+            break;
+        }
+    }
+
+    if (detectedIndex !== null) {
+        if (lastDetectedIndex !== detectedIndex) {
+            triggerStartTime = Date.now();
+            lastDetectedIndex = detectedIndex;
+        }
+        if (Date.now() - triggerStartTime >= TRIGGER_DURATION) {
+            if (isVideoPlaying) {
+                io.emit('hideEverythinginVideoScreen');
+                isVideoPlaying = false;
+            }
+            io.emit('specialVideoChange', { videoFile: selectedVideo });
+            console.log(chalk.blue(`📢 OSC: Playing ${selectedVideo}`));
+            triggerStartTime = null;
+            isVideoPlaying = true;
+        }
     } else {
-        console.log(`❌ Error: No item received on screen ${screenId}.`);
-        res.status(400).json({ error: 'No item provided' });
-    }
-});
-
-
-
-// Initialize Modbus TCP client (async version)
-async function initializeModbusClient() {
-    try {
-        modbusClient = new ModbusRTU();
-        await modbusClient.connectTCP(MODBUS_SERVER_IP, { port: MODBUS_SERVER_PORT });
-        console.log(chalk.green(`Connected to Modbus TCP server at ${MODBUS_SERVER_IP}:${MODBUS_SERVER_PORT}`));
-        isModbusConnected = true;
-        // startModbusReading();
-
-        modbusClient.on('error', async (err) => {
-            console.error(chalk.red(`Modbus connection error: ${err.message}`));
-            isModbusConnected = false;
-            console.log(chalk.yellow("Attempting to reconnect to Modbus server..."));
-            await initializeModbusClient();
-        });
-    } catch (err) {
-        console.error(chalk.red(`Failed to connect to Modbus TCP server: ${err.message}`));
-        console.log(chalk.yellow("Retrying connection in 5 seconds..."));
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        await initializeModbusClient();
+        triggerStartTime = null;
+        lastDetectedIndex = null;
     }
 }
 
-// Function to write data to a Modbus register
-async function writeToModbusRegister(registerAddress, value) {
-    if (!modbusClient || !modbusClient.isOpen) {
-        console.error(chalk.red("Modbus client is not initialized or connection is not open. Skipping write operation."));
-        return;
-    }
-    try {
-        await modbusClient.writeRegister(registerAddress - 40001, value);
-        console.log(chalk.green(`Successfully wrote value ${value} to Modbus register ${registerAddress}`));
-    } catch (err) {
-        console.error(chalk.red(`Error writing to Modbus register ${registerAddress}: ${err.message}`));
-        await initializeModbusClient();
-    }
+// Function to send OSC message to C program
+function sendOSCMessage(address, value) {
+    oscPort.send({
+        address: address,
+        args: [{ type: "i", value: value }]
+    });
+    console.log(chalk.magenta(`📤 OSC Sent: ${address} = ${value}`));
 }
 
-// Function to continuously read from Modbus
-async function startModbusReading() {
-    while (true) {
-        if (isModbusConnected) {
-            try {
-                const data = await modbusClient.readHoldingRegisters(MODBUS_REGISTER_ADDRESS_3 - 40001, 1);
-                const modbusValue = data.data[0];
-                console.log(chalk.yellow(`Modbus Read Value: ${modbusValue}`));
+// Open the OSC port
+oscPort.open();
 
-                let selectedVideo = null;
-                let detectedIndex = null;
-                for (const range of TRIGGER_RANGES) {
-                    if (modbusValue >= range.min && modbusValue <= range.max) {
-                        detectedIndex = range.index;
-                        selectedVideo = VIDEO_MAPPING[String(range.index)]; // Ensure index is used as a string key
-                        break;
-                    }
-                }
-
-                if (detectedIndex !== null) {
-                    if (lastDetectedIndex !== detectedIndex) {
-                        // Reset timer if new index detected
-                        triggerStartTime = Date.now();
-                        lastDetectedIndex = detectedIndex;
-                    }
-                    if (Date.now() - triggerStartTime >= TRIGGER_DURATION) {
-                        if (isVideoPlaying) {
-                            io.emit('hideEverythinginVideoScreen');
-                            console.log(chalk.red("🔴 Hiding all videos, showing background image with scrolling."));
-                            isVideoPlaying = false;
-                        }
-                        io.emit('specialVideoChange', { videoFile: selectedVideo });
-                        console.log(chalk.blue(`📢 Emitting 'specialVideoChange' for value: ${modbusValue} -> ${selectedVideo}`));
-                        // Reset timer after emitting
-                        triggerStartTime = null;
-                        isVideoPlaying = true;
-                    }
-                } else {
-                    // Reset if value goes out of range
-                    triggerStartTime = null;
-                    lastDetectedIndex = null;
-                }
-            } catch (err) {
-                console.error(chalk.red(`Error reading Modbus register: ${err.message}`));
-            }
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Read every second
-    }
-}
-
-async function handleSequentialWrites(value) {
-    if (!isModbusConnected) {
-        console.error(chalk.red("Modbus client is not connected. Cannot process sequential writes."));
-        return;
-    }
-    // Step 1: Write the received value to register 40024
-    await writeToModbusRegister(MODBUS_REGISTER_ADDRESS_1, value);
-
-    // Step 2: After 1 second, write 1 to register 40025
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-    await writeToModbusRegister(MODBUS_REGISTER_ADDRESS_2, 1);
-
-    // Step 3: After another 1 second, write 0 to register 40025
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-    await writeToModbusRegister(MODBUS_REGISTER_ADDRESS_2, 0);
-}
-
-// Function to continuously read from Modbus
-async function startModbusReadingTest() {
-    while (true) {
-        try {
-            const modbusValue = Math.floor(Math.random() * 301); // Generate random value between 0-300
-            console.log(chalk.yellow(`Generated Dummy Modbus Value: ${modbusValue}`));
-
-            let selectedVideo = null;
-            let detectedIndex = null;
-            for (const range of TRIGGER_RANGES) {
-                if (modbusValue >= range.min && modbusValue <= range.max) {
-                    detectedIndex = range.index;
-                    selectedVideo = VIDEO_MAPPING[String(range.index)]; // Ensure index is used as a string key
-                    break;
-                }
-            }
-
-            if (detectedIndex !== null) {
-                if (lastDetectedIndex !== detectedIndex) {
-                    // Reset timer if new index detected
-                    triggerStartTime = Date.now();
-                    lastDetectedIndex = detectedIndex;
-                }
-                if (Date.now() - triggerStartTime >= TRIGGER_DURATION) {
-                    if (isVideoPlaying) {
-                        io.emit('hideEverythinginVideoScreen');
-                        console.log(chalk.red("🔴 Hiding all videos, showing background image with scrolling."));
-                        isVideoPlaying = false;
-                    }
-                    io.emit('specialVideoChange', { videoFile: selectedVideo });
-                    console.log(chalk.blue(`📢 Emitting 'specialVideoChange' for value: ${modbusValue} -> ${selectedVideo}`));
-                    // Reset timer after emitting
-                    triggerStartTime = null;
-                    isVideoPlaying = true;
-                }
-            } else {
-                // Reset if value goes out of range
-                triggerStartTime = null;
-                lastDetectedIndex = null;
-            }
-        } catch (err) {
-            console.error(chalk.red(`Error in dummy Modbus reading: ${err.message}`));
-        }
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Read every second
-    }
-}
+// ===================== End OSC Setup =====================
 
 // ✅ Handle Socket.IO connections
 io.on('connection', (socket) => {
@@ -329,36 +163,37 @@ io.on('connection', (socket) => {
 
     socket.on('hideEverything', () => {
         console.log('🔴 Hiding everything triggered!');
-        // ✅ Broadcast to all clients if needed
         io.emit('hideEverythinginVideoScreen');
     });
 
-
-    socket.on('buttonClick', async (data) => {
+    socket.on('buttonClick', (data) => {
         console.log('Received from client:', data.message);
 
         const buttonNumber = data.message.replace(/\D/g, "");
 
+        // Send button click to C program via OSC
+        sendOSCMessage("/button", parseInt(buttonNumber));
 
-        //initialising 
-        await initializeModbusClient();
-        //writting
-        await handleSequentialWrites(parseInt(buttonNumber));
         io.emit('move', { button: buttonNumber });
         console.log("🟢 Move emitted with button:", buttonNumber);
-        if (isVideoPlaying) {
-            io.emit('hideEverythinginVideoScreen');
-            console.log("🔴 Video was playing, hiding all videos and showing background.");
-            isVideoPlaying = false;
-        }
 
-        console.log("data ")
+        isVideoPlaying = false;
+    });
+
+    // Relay scroll complete to all clients (to re-enable buttons)
+    socket.on('scrollComplete', () => {
+        console.log('📍 Scroll complete received');
+        io.emit('scrollComplete');
+    });
+
+    // Relay video ended to all clients (to re-enable buttons)
+    socket.on('videoEnded', () => {
+        console.log('🎬 Video ended received');
+        isVideoPlaying = false;
+        io.emit('videoEnded');
     });
 
 });
-
-initializeModbusClient();
-
 
 // Get server IP address
 function getServerIPAddress() {
@@ -379,9 +214,5 @@ function getServerIPAddress() {
 // ✅ Start the server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    // const ipAddress = getServerIPAddress();
-    // startModbusReadingTest();
-    startModbusReading();
-
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
