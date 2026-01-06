@@ -83,18 +83,15 @@
 
 <body>
 
-    <!-- Background Image -->
     <div id="image-container">
         <img class="bg-image" src="/images/bg3.jpg" alt="Background">
     </div>
 
-    <!-- Default looping video (Hidden Initially) -->
     <video id="defaultVideo" loop autoplay muted>
         <source src="/videos/default.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
 
-    <!-- Main Video Player -->
     <video id="videoPlayer" controls>
         <source id="videoSource" src="" type="video/mp4">
         Your browser does not support the video tag.
@@ -106,25 +103,30 @@
         const videoSource = document.getElementById('videoSource');
         const defaultVideo = document.getElementById('defaultVideo');
         const imageContainer = document.getElementById('image-container');
-
         const socket = io();
 
-        // Position mapping loaded from config.json via server
-        // Maps OSC position values to pixel positions for image scrolling
-        const POSITION_MAP = <%- JSON.stringify(positionMap) %>;
+        // 1. RAW CONFIG FROM SERVER
+        // Passed from the Express server via EJS
+        const RAW_POSITION_MAP = <%- JSON.stringify(positionMap) %>;
 
-        // Button number to final pixel position mapping
-        // Derived from POSITION_MAP - maps button numbers (0-5) to their target positions
-        const BUTTON_TO_POSITION = (function() {
-            const keys = Object.keys(POSITION_MAP).map(parseFloat).sort((a, b) => a - b);
-            const map = {};
-            keys.forEach((key, index) => {
-                map[index] = POSITION_MAP[key];
-            });
-            return map;
-        })();
+        // 2. ROBUST DATA CONVERSION
+        // Convert the config object into a sorted array of objects { osc: 1.0, px: 3240 }
+        // This prevents the "1" vs "1.0" lookup error causing NaN.
+        const MAPPED_POSITIONS = Object.keys(RAW_POSITION_MAP)
+            .map(key => ({
+                osc: parseFloat(key),     // The position value (e.g., 1.0)
+                px: RAW_POSITION_MAP[key] // The pixel value (e.g., 3240)
+            }))
+            .sort((a, b) => a.osc - b.osc); // Ensure strictly sorted order
 
-        console.log('📍 POSITION_MAP:', POSITION_MAP);
+        // 3. REGENERATE BUTTON MAPPING
+        // Maps button index (0, 1, 2...) directly to pixel values using the sorted array indices
+        const BUTTON_TO_POSITION = {};
+        MAPPED_POSITIONS.forEach((item, index) => {
+            BUTTON_TO_POSITION[index] = item.px;
+        });
+
+        console.log('📍 MAPPED_POSITIONS:', MAPPED_POSITIONS);
         console.log('📍 BUTTON_TO_POSITION:', BUTTON_TO_POSITION);
 
         let currentTarget = 0;
@@ -149,74 +151,74 @@
         }
 
         // Handle movement data from OSC via server
-        // /movement { position: float }
         socket.on('movement', (data) => {
             const positionIndex = data.position;
-            
-            // Calculate pixel position using interpolation based on POSITION_MAP
             let newScrollLeft = 0;
-            const keys = Object.keys(POSITION_MAP).map(parseFloat).sort((a, b) => a - b);
-            
-            if (positionIndex <= keys[0]) {
-                newScrollLeft = POSITION_MAP[keys[0]];
-            } else if (positionIndex >= keys[keys.length - 1]) {
-                newScrollLeft = POSITION_MAP[keys[keys.length - 1]];
+
+            // Boundary checks: if outside range, clamp to start or end
+            const firstPoint = MAPPED_POSITIONS[0];
+            const lastPoint = MAPPED_POSITIONS[MAPPED_POSITIONS.length - 1];
+
+            if (positionIndex <= firstPoint.osc) {
+                newScrollLeft = firstPoint.px;
+            } else if (positionIndex >= lastPoint.osc) {
+                newScrollLeft = lastPoint.px;
             } else {
-                for (let i = 0; i < keys.length - 1; i++) {
-                    const start = keys[i];
-                    const end = keys[i+1];
-                    if (positionIndex >= start && positionIndex <= end) {
-                        const startPos = POSITION_MAP[start];
-                        const endPos = POSITION_MAP[end];
-                        const t = (positionIndex - start) / (end - start);
-                        newScrollLeft = startPos + t * (endPos - startPos);
-                        break;
+                // Interpolation Loop using our robust array
+                // We find which two points we are between
+                for (let i = 0; i < MAPPED_POSITIONS.length - 1; i++) {
+                    const current = MAPPED_POSITIONS[i];
+                    const next = MAPPED_POSITIONS[i + 1];
+
+                    if (positionIndex >= current.osc && positionIndex <= next.osc) {
+                        // Math: Linear Interpolation
+                        const range = next.osc - current.osc;
+                        const dist = positionIndex - current.osc;
+                        const t = dist / range;
+                        
+                        // Calculate pixels
+                        newScrollLeft = current.px + t * (next.px - current.px);
+                        break; 
                     }
                 }
             }
             
             imageContainer.scrollLeft = newScrollLeft;
-            console.log(`🔄 Moving to position index: ${positionIndex.toFixed(3)} (${newScrollLeft.toFixed(0)}px)`);
+            // console.log(`🔄 Moving: ${positionIndex.toFixed(3)} -> ${newScrollLeft.toFixed(0)}px`);
         });
 
-        // Handle reached destination - play video
+        // Handle reached destination
         socket.on('reached', (data) => {
             console.log(`📍 Reached position ${data.button}`);
-
-            // Ensure we are physically at the target position using button mapping
             const targetPos = BUTTON_TO_POSITION[data.button];
+            
             if (targetPos !== undefined) {
                 imageContainer.scrollLeft = targetPos;
                 currentTarget = data.button;
                 startPosition = targetPos;
-                console.log(`📍 Set final position to ${targetPos}px for button ${data.button}`);
+                console.log(`📍 Set final position to ${targetPos}px`);
             } else {
                 console.warn(`⚠️ No position mapping for button ${data.button}`);
             }
-
             socket.emit('scrollComplete');
         });
 
-        // Handle play video command from server
         socket.on('playVideo', (data) => {
             console.log(`🎬 Play video command: ${data.videoFile}`);
             playNewVideo(data.videoFile);
         });
 
-        // Handle stop video command
         socket.on('stopVideo', () => {
             console.log('⏹️ Stop video command received');
             pauseAndHideAll();
         });
 
-        // Handle hide everything
         socket.on('hideEverythinginVideoScreen', () => {
             console.log('🔴 Hiding all videos, showing background');
             pauseAndHideAll();
             document.getElementById('image-container').style.display = 'block';
         });
 
-        // When video ends
         videoPlayer.addEventListener('ended', () => {
             console.log('🎬 Video ended');
             videoPlayer.pause();
