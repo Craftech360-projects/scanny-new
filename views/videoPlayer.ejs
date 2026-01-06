@@ -142,30 +142,29 @@
         }
 
         // Handle movement data from OSC via server
-        // /movement [buttonNumber, progress] where progress is 0.0 to 1.0
+        // /movement { position: float }
         socket.on('movement', (data) => {
-            const button = data.button;
-            const progress = data.progress;
-
-            // If new target, store the start position
-            if (currentTarget !== button) {
-                startPosition = imageContainer.scrollLeft;
-                currentTarget = button;
-                // Stop any playing video when movement starts
-                pauseAndHideAll();
-            }
-
-            const targetPosition = POSITION_MAP[button] || 0;
-            const distance = targetPosition - startPosition;
-
-            // Move image based on progress (0.0 to 1.0)
-            imageContainer.scrollLeft = startPosition + (distance * progress);
-            console.log(`🔄 Moving to ${button}: ${(progress * 100).toFixed(1)}%`);
+            const positionIndex = data.position;
+            
+            // Calculate pixel position directly (1080px per unit)
+            const newScrollLeft = positionIndex * 1080;
+            
+            imageContainer.scrollLeft = newScrollLeft;
+            console.log(`🔄 Moving to position index: ${positionIndex.toFixed(3)} (${newScrollLeft.toFixed(0)}px)`);
         });
 
         // Handle reached destination - play video
         socket.on('reached', (data) => {
             console.log(`📍 Reached position ${data.button}`);
+            
+            // Ensure we are physically at the target position
+            const targetPos = POSITION_MAP[data.button];
+            if (targetPos !== undefined) {
+                imageContainer.scrollLeft = targetPos;
+                currentTarget = data.button;
+                startPosition = targetPos; // Reset start position for next move
+            }
+            
             socket.emit('scrollComplete');
         });
 
