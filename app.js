@@ -164,8 +164,8 @@ io.on('connection', (socket) => {
         console.log('Received from client:', data.message);
 
         const buttonNumber = data.message.replace(/\D/g, "");
-        // Convert btn6 to 0 (home), otherwise use the number
-        const oscValue = buttonNumber === "6" ? 0 : parseInt(buttonNumber);
+        // Convert btn7 to 0 (home), otherwise use the number
+        const oscValue = buttonNumber === "7" ? 0 : parseInt(buttonNumber);
 
         // Send button click to C program via OSC
         sendOSCMessage("/start", oscValue);
