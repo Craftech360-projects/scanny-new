@@ -112,6 +112,17 @@
         width: 80%;
         margin-top: 20px;
       }
+      .home-button{
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        height: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -147,6 +158,9 @@
         </div>
         <% }); %>
       </div>
+      <div class="home-button">
+        <img src="/images/home.png" alt="" onclick="handleButtonClick('btn7')"/>
+      </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -160,6 +174,10 @@
           button.style.opacity = "0.5";
           button.style.pointerEvents = "none";
         });
+        document.querySelectorAll(".home-button").forEach((button) => {
+          button.style.opacity = "0.5";
+          button.style.pointerEvents = "none";
+        });
       }
 
       function enableAllButtons() {
@@ -168,20 +186,26 @@
           button.style.opacity = "1";
           button.style.pointerEvents = "auto";
         });
+        document.querySelectorAll(".home-button").forEach((button) => {
+          button.style.opacity = "1";
+          button.style.pointerEvents = "auto";
+        });
       }
 
       function handleButtonClick(id) {
         // clear active state from any previously clicked button
-        document
-          .querySelectorAll(".ticket-button")
-          .forEach((btn) => btn.classList.remove("active"));
+        if(id !== 'btn7'){
+        
+          document
+            .querySelectorAll(".ticket-button")
+            .forEach((btn) => btn.classList.remove("active"));
 
-        if (buttonsDisabled) return;
+          if (buttonsDisabled) return;
 
-        document.getElementById(id).classList.add("active");
+          document.getElementById(id).classList.add("active");
 
+        }
         const activeButton = document.getElementById(id);
-
         // Disable buttons while moving
         disableAllButtons();
 
